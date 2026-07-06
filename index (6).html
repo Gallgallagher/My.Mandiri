@@ -1,0 +1,2873 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Absensi Pegawai - Bank Mandiri</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mandiriBlue: '#003D79',
+                        mandiriYellow: '#F9C400',
+                        mandiriDarkBlue: '#00264d',
+                        mandiriLightGray: '#F5F7FA',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Cropper.js (For profile photo cropping) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #003D79;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #F9C400;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-slate-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+<div id="app" class="flex flex-col min-h-screen">
+    
+    <!-- Top Progress Loading Indicator (Simulated) -->
+    <div id="loading-bar" class="h-1 bg-mandiriYellow w-0 transition-all duration-300 fixed top-0 left-0 z-50"></div>
+
+    <!-- MAIN LOGIN SCREEN CONTAINER -->
+    <div id="login-container" class="flex-1 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-tr from-mandiriBlue via-[#002B55] to-slate-900 text-white min-h-screen relative overflow-hidden">
+        <!-- Floating shapes/brand motifs in background -->
+        <div class="absolute w-96 h-96 bg-mandiriYellow/10 rounded-full blur-3xl top-[-10%] right-[-10%]"></div>
+        <div class="absolute w-96 h-96 bg-blue-500/10 rounded-full blur-3xl bottom-[-10%] left-[-10%]"></div>
+        
+        <!-- Brand Logo Header -->
+        <div class="mb-8 text-center z-10">
+            <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md py-3 px-6 rounded-2xl shadow-xl border border-white/20">
+                <div class="bg-white text-mandiriBlue px-3 py-1.5 rounded-lg font-extrabold tracking-wider text-xl">mandırı</div>
+                <div class="w-[2px] h-6 bg-white/40"></div>
+                <div class="text-mandiriYellow font-semibold tracking-widest text-sm uppercase">E-Absen</div>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold mt-6 tracking-tight text-white">Sistem Absensi Digital Pegawai</h1>
+            <p class="text-gray-300 text-sm mt-2 max-w-md mx-auto">Sistem Verifikasi Biometrik, GPS Real-time & Evaluasi Kinerja Tepercaya Kantor Pusat Bank Mandiri</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="w-full max-w-lg bg-white/95 text-gray-900 dark:bg-slate-800 dark:text-white rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/20 dark:border-slate-700 transition-all z-10">
+            <!-- Tabs for Login Role -->
+            <div class="flex p-1 bg-gray-100 dark:bg-slate-700/50 rounded-2xl mb-8">
+                <button onclick="switchLoginRole('employee')" id="btn-tab-employee" class="w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 bg-white dark:bg-slate-800 text-mandiriBlue dark:text-white shadow">
+                    <i class="fa-solid fa-user-tie mr-2"></i>Pegawai (NIP)
+                </button>
+                <button onclick="switchLoginRole('admin')" id="btn-tab-admin" class="w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                    <i class="fa-solid fa-user-shield mr-2"></i>Administrator
+                </button>
+            </div>
+
+            <form id="form-employee-login" onsubmit="handleEmployeeLogin(event)" class="space-y-6">
+                <div>
+                    <label for="employee-nip" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fa-solid fa-id-card text-mandiriBlue mr-1"></i> Nomor Induk Pegawai (NIP)
+                    </label>
+                    <div class="relative rounded-2xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <input type="text" id="employee-nip" name="nip" required placeholder="Masukkan 12 Digit NIP Anda"
+                            class="block w-full pl-11 pr-4 py-4 border border-gray-300 dark:border-slate-600 rounded-2xl focus:ring-2 focus:ring-mandiriBlue focus:border-mandiriBlue bg-white dark:bg-slate-900 dark:text-white text-md tracking-wider transition-all placeholder:text-gray-400"
+                            maxlength="12">
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                        <span>Contoh NIP terdaftar:</span>
+                        <div class="flex gap-2 flex-wrap justify-end">
+                            <span onclick="copyNip('251011401559')" class="cursor-pointer bg-mandiriBlue/10 text-mandiriBlue dark:bg-white/10 dark:text-gray-300 py-0.5 px-2 rounded hover:bg-mandiriYellow hover:text-gray-900 font-mono transition-all">251011401559</span>
+                            <span onclick="copyNip('251011401560')" class="cursor-pointer bg-mandiriBlue/10 text-mandiriBlue dark:bg-white/10 dark:text-gray-300 py-0.5 px-2 rounded hover:bg-mandiriYellow hover:text-gray-900 font-mono transition-all">251011401560</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="remember-me-emp" type="checkbox" class="h-4 w-4 text-mandiriBlue focus:ring-mandiriBlue border-gray-300 rounded">
+                    <label for="remember-me-emp" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        Ingat sesi login saya
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-2xl shadow-lg text-md font-bold text-mandiriBlue bg-mandiriYellow hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mandiriYellow transition-all duration-300 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i>Masuk Portal Absensi
+                </button>
+            </form>
+
+            <form id="form-admin-login" onsubmit="handleAdminLogin(event)" class="space-y-6 hidden">
+                <div>
+                    <label for="admin-id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">ID Administrator</label>
+                    <div class="relative rounded-2xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <input type="text" id="admin-id" required placeholder="Masukkan ID Admin"
+                            class="block w-full pl-11 pr-4 py-4 border border-gray-300 dark:border-slate-600 rounded-2xl focus:ring-2 focus:ring-mandiriBlue focus:ring-mandiriBlue bg-white dark:bg-slate-900 dark:text-white transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="admin-pass" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Kata Sandi</label>
+                    <div class="relative rounded-2xl shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <input type="password" id="admin-pass" required placeholder="Masukkan Kata Sandi"
+                            class="block w-full pl-11 pr-12 py-4 border border-gray-300 dark:border-slate-600 rounded-2xl focus:ring-2 focus:ring-mandiriBlue focus:ring-mandiriBlue bg-white dark:bg-slate-900 dark:text-white transition-all">
+                        <button type="button" onclick="toggleAdminPassVisibility()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                            <i id="admin-pass-toggle-icon" class="fa-solid fa-eye-slash"></i>
+                        </button>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500 flex items-center justify-between">
+                        <span>Kredensial Default:</span>
+                        <code class="bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300">GaluhGuytama</code>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="remember-me-adm" type="checkbox" class="h-4 w-4 text-mandiriBlue focus:ring-mandiriBlue border-gray-300 rounded">
+                    <label for="remember-me-adm" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                        Ingat sesi Administrator
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-2xl shadow-lg text-md font-bold text-white bg-mandiriBlue hover:bg-mandiriDarkBlue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mandiriBlue transition-all duration-300 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-shield-halved mr-2"></i>Otorisasi Admin
+                </button>
+            </form>
+        </div>
+
+        <div class="mt-8 text-center z-10 text-xs text-gray-400 max-w-sm">
+            <p>&copy; 2026 PT Bank Mandiri (Persero) Tbk. All Rights Reserved. Hak Cipta Dilindungi Undang-Undang.</p>
+        </div>
+    </div>
+
+    <!-- MAIN PORTAL APPLICATION -->
+    <div id="main-portal" class="flex-1 flex flex-col md:flex-row hidden">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="sidebar" class="w-full md:w-64 bg-mandiriBlue text-white flex flex-col transition-all duration-300 relative z-30">
+            <!-- Sidebar Header Brand -->
+            <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="bg-white text-mandiriBlue px-2.5 py-1 rounded font-extrabold tracking-wider text-md">mandırı</span>
+                    <span class="text-mandiriYellow font-bold tracking-widest text-xs">ABSEN</span>
+                </div>
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleSidebar()" class="md:hidden text-white hover:text-mandiriYellow">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Profile Overview Widget in Sidebar -->
+            <div id="sidebar-profile" class="p-6 border-b border-white/10 bg-black/10 text-center">
+                <div class="relative inline-block mx-auto mb-3">
+                    <img id="sidebar-avatar" src="https://placehold.co/150x150/003D79/FFFFFF?text=BM" alt="Pegawai" class="w-16 h-16 rounded-full border-2 border-mandiriYellow object-cover mx-auto shadow-md">
+                    <span id="sidebar-badge" class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-mandiriBlue rounded-full"></span>
+                </div>
+                <h4 id="sidebar-name" class="font-bold text-sm tracking-wide truncate">Suryo Utomo</h4>
+                <p id="sidebar-position" class="text-xs text-gray-300 truncate mt-0.5">Senior Relationship Manager</p>
+                <div class="inline-flex items-center gap-1 mt-2 px-2.5 py-0.5 bg-mandiriYellow text-mandiriBlue rounded-full text-[10px] font-extrabold uppercase">
+                    <i class="fa-solid fa-trophy text-[9px]"></i> <span id="sidebar-level">Diamond</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto" id="sidebar-nav">
+                <!-- Links rendered dynamically depending on logged in role -->
+            </nav>
+
+            <!-- Bottom Session Info / Mode Toggles -->
+            <div class="p-4 border-t border-white/10 bg-black/10 space-y-3">
+                <div class="flex items-center justify-between text-xs text-gray-300">
+                    <span>Sesi Berakhir:</span>
+                    <span id="session-timer" class="font-mono text-mandiriYellow font-bold">15:00</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <button onclick="toggleDarkMode()" class="py-2 px-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5">
+                        <i id="theme-icon" class="fa-solid fa-moon"></i> <span>Mode</span>
+                    </button>
+                    <button onclick="handleLogout()" class="py-2 px-3 bg-rose-600/80 hover:bg-rose-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-white">
+                        <i class="fa-solid fa-power-off"></i> <span>Keluar</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 transition-all">
+            <!-- HEADER -->
+            <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 py-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-600 dark:text-gray-300 hover:text-mandiriBlue">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 id="view-title" class="text-xl font-extrabold text-mandiriBlue dark:text-white">Dashboard Pegawai</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pusat Informasi, Absensi Digital Mandiri, dan Evaluasi Prestasi Kerja</p>
+                    </div>
+                </div>
+
+                <!-- Clock / Location Widget -->
+                <div class="flex items-center gap-4 bg-mandiriLightGray dark:bg-slate-700/50 py-2 px-4 rounded-2xl border border-gray-200/50 dark:border-slate-600/50">
+                    <div class="text-right">
+                        <p id="live-time" class="text-md font-extrabold text-mandiriBlue dark:text-mandiriYellow font-mono tracking-wider">18:37:04 WIB</p>
+                        <p id="live-date" class="text-[10px] text-gray-500 dark:text-gray-300 font-semibold uppercase">Senin, 6 Juli 2026</p>
+                    </div>
+                    <div class="w-[2px] h-8 bg-gray-300 dark:bg-slate-600"></div>
+                    <div class="flex flex-col items-start">
+                        <span class="inline-flex items-center text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                            <i class="fa-solid fa-network-wired mr-1"></i> Terhubung
+                        </span>
+                        <span id="current-location-status" class="text-[9px] text-gray-400 mt-0.5 truncate max-w-[120px]">Plaza Mandiri, JKT</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- VIEWPORT WINDOW -->
+            <div id="view-window" class="flex-1 p-6 overflow-y-auto max-w-[1600px] mx-auto w-full">
+                <!-- Dynamic views injection point -->
+            </div>
+        </main>
+    </div>
+
+    <!-- WHATSAPP FLOATING CUSTOMER SERVICE BUTTON -->
+    <a href="https://wa.me/628575249048?text=Halo%20Customer%20Service%20Bank%20Mandiri%2C%20saya%20membutuhkan%20bantuan%20mengenai%20aplikasi%20absensi%20pegawai."
+       target="_blank"
+       class="fixed bottom-6 right-6 z-40 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full p-4 shadow-2xl flex items-center justify-center group hover:scale-110 transition-all duration-300"
+       title="Hubungi Customer Service Bank Mandiri via WhatsApp">
+        <div class="absolute right-14 bg-slate-900/90 text-white text-xs py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none mr-2 font-medium">
+            Butuh Bantuan? Hubungi CS Mandiri
+        </div>
+        <i class="fa-brands fa-whatsapp text-3xl"></i>
+    </a>
+
+    <!-- SYSTEM MODALS CONTAINER -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <!-- Dynaimc Modal content injected here -->
+    </div>
+
+</div>
+
+<script>
+    // System core datasets
+    const defaultEmployees = [
+        {
+            nip: "251011401559",
+            name: "Suryo Utomo",
+            position: "Senior Relationship Manager",
+            branch: "Kantor Pusat Plaza Mandiri, Jakarta",
+            email: "suryo.utomo@bankmandiri.co.id",
+            phone: "+62 821-2345-6789",
+            status: "Aktif",
+            points: 1250,
+            level: "Diamond",
+            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
+            bio: {
+                biography: "Lahir dan berkarir di Jakarta, berdedikasi membangun nilai inovasi finansial bersama Bank Mandiri.",
+                aboutMe: "Spesialis dalam manajemen hubungan korporasi skala besar, berfokus pada efisiensi pendanaan.",
+                motivation: "Melampaui target harian untuk pertumbuhan berkelanjutan negeri.",
+                workNotes: "Fokus audit berkas nasabah kuartal kedua harus diselesaikan minggu ini tanpa cela."
+            },
+            performance: {
+                attendance: 98,
+                discipline: 95,
+                punctuality: 97,
+                target: 92,
+                overall: 95
+            }
+        },
+        {
+            nip: "251011401560",
+            name: "Nabila Putrie",
+            position: "Corporate Legal Counsel",
+            branch: "Kantor Wilayah III Jakarta Kota",
+            email: "nabila.putrie@bankmandiri.co.id",
+            phone: "+62 812-9876-5432",
+            status: "Aktif",
+            points: 950,
+            level: "Platinum",
+            avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80",
+            bio: {
+                biography: "Berpengalaman 8 tahun dalam urusan hukum perbankan nasional dan restrukturisasi aset.",
+                aboutMe: "Penyusun kebijakan internal kepatuhan hukum dan analisis risiko regulasi baru.",
+                motivation: "Integritas tanpa batas adalah jaminan kepercayaan nasabah.",
+                workNotes: "Menyelesaikan draft kesepakatan konsorsium proyek infrastruktur kelistrikan BUMN."
+            },
+            performance: {
+                attendance: 96,
+                discipline: 98,
+                punctuality: 94,
+                target: 95,
+                overall: 96
+            }
+        },
+        {
+            nip: "251011401561",
+            name: "Galang Guytama",
+            position: "Lead Database Administrator",
+            branch: "Sentra TI Plasa Bapindo, Jakarta",
+            email: "galang.guytama@bankmandiri.co.id",
+            phone: "+62 856-4321-0987",
+            status: "Aktif",
+            points: 780,
+            level: "Gold",
+            avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
+            bio: {
+                biography: "Pecinta arsitektur data performa tinggi yang selalu berorientasi pada nol waktu henti (Zero Downtime).",
+                aboutMe: "Penjaga stabilitas infrastruktur database inti Core Banking Bank Mandiri.",
+                motivation: "Mengubah data mentah menjadi wawasan berharga demi kemudahan transaksi nasabah.",
+                workNotes: "Skedul migrasi cluster basis data utama dijadwalkan sabtu malam pukul 23:00 WIB."
+            },
+            performance: {
+                attendance: 94,
+                discipline: 90,
+                punctuality: 92,
+                target: 96,
+                overall: 93
+            }
+        },
+        {
+            nip: "251011401562",
+            name: "Anindya Kirana",
+            position: "Customer Service Supervisor",
+            branch: "Mandiri Cabang Bandung Asia Afrika",
+            email: "anindya.kirana@bankmandiri.co.id",
+            phone: "+62 813-2222-1111",
+            status: "Aktif",
+            points: 620,
+            level: "Silver",
+            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
+            bio: {
+                biography: "Berdedikasi dalam standardisasi layanan prima di seluruh kantor cabang wilayah Jawa Barat.",
+                aboutMe: "Fasilitator pelatihan keramahan petugas garda depan dan penyelesaian klaim prioritas.",
+                motivation: "Senyuman dan kelegaan nasabah adalah standar kesuksesan utama kami.",
+                workNotes: "Persiapan audit kepatuhan ISO 9001 pelayanan publik minggu depan wajib matang."
+            },
+            performance: {
+                attendance: 92,
+                discipline: 94,
+                punctuality: 90,
+                target: 92,
+                overall: 92
+            }
+        },
+        {
+            nip: "251011401563",
+            name: "Raditya Pamungkas",
+            position: "Wealth Management Executive",
+            branch: "Mandiri Cabang Surabaya Basuki Rahmat",
+            email: "raditya.pamungkas@bankmandiri.co.id",
+            phone: "+62 878-5555-4444",
+            status: "Aktif",
+            points: 450,
+            level: "Bronze",
+            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&h=150&q=80",
+            bio: {
+                biography: "Spesialis portofolio investasi pasar modal dan proteksi finansial keluarga bernilai tinggi.",
+                aboutMe: "Konsultan tepercaya untuk nasabah prioritas dengan total dana kelolaan di atas 10 Milyar.",
+                motivation: "Mengawal kemandirian finansial generasi bangsa melalui perencanaan strategis.",
+                workNotes: "Menghubungi lima klien prospektif untuk peluncuran reksa dana pendapatan tetap terbaru."
+            },
+            performance: {
+                attendance: 90,
+                discipline: 92,
+                punctuality: 88,
+                target: 90,
+                overall: 90
+            }
+        }
+    ];
+
+    // Seed Initial Attendance Logs
+    const defaultLogs = [
+        { id: 1, nip: "251011401559", date: "2026-07-06", type: "Hadir", checkIn: "07:32:15", breakStart: "12:02:11", breakEnd: "12:45:00", checkOut: "17:05:40", lat: "-6.2246", lng: "106.8123", address: "Plaza Mandiri, Jl. Gatot Subroto, Jakarta Selatan", distance: "21m", status: "Valid (WFO)" },
+        { id: 2, nip: "251011401560", date: "2026-07-06", type: "Hadir", checkIn: "07:44:02", breakStart: "12:05:30", breakEnd: "12:50:11", checkOut: "17:15:22", lat: "-6.2248", lng: "106.8125", address: "Plaza Mandiri, Jl. Gatot Subroto, Jakarta Selatan", distance: "45m", status: "Valid (WFO)" },
+        { id: 3, nip: "251011401561", date: "2026-07-06", type: "Hadir", checkIn: "07:55:40", breakStart: "12:10:00", breakEnd: "12:58:55", checkOut: "17:00:10", lat: "-6.2250", lng: "106.8118", address: "Plaza Mandiri, Jl. Gatot Subroto, Jakarta Selatan", distance: "65m", status: "Valid (WFO)" },
+        { id: 4, nip: "251011401562", date: "2026-07-06", type: "Hadir", checkIn: "08:05:12", breakStart: "12:00:45", breakEnd: "12:40:22", checkOut: "17:10:00", lat: "-6.91474", lng: "107.60981", address: "Jl. Asia Afrika No.107, Bandung, Jawa Barat", distance: "12m", status: "Valid (WFO)" },
+        { id: 5, nip: "251011401563", date: "2026-07-06", type: "Hadir", checkIn: "08:15:55", breakStart: "12:15:00", breakEnd: "13:00:00", checkOut: "17:30:15", lat: "-7.26241", lng: "112.74232", address: "Jl. Basuki Rahmat No.129, Surabaya, Jawa Timur", distance: "8m", status: "Valid (WFO)" },
+        // Older records for employee Suryo
+        { id: 6, nip: "251011401559", date: "2026-07-03", type: "Hadir", checkIn: "07:28:44", breakStart: "12:01:00", breakEnd: "12:35:10", checkOut: "17:02:11", lat: "-6.2246", lng: "106.8123", address: "Plaza Mandiri, Jakarta", distance: "21m", status: "Valid (WFO)" },
+        { id: 7, nip: "251011401559", date: "2026-07-02", type: "Hadir", checkIn: "07:35:00", breakStart: "12:04:15", breakEnd: "12:44:00", checkOut: "17:01:15", lat: "-6.2246", lng: "106.8123", address: "Plaza Mandiri, Jakarta", distance: "21m", status: "Valid (WFO)" },
+        { id: 8, nip: "251011401559", date: "2026-07-01", type: "Hadir", checkIn: "07:25:12", breakStart: "11:58:30", breakEnd: "12:41:10", checkOut: "17:05:00", lat: "-6.2246", lng: "106.8123", address: "Plaza Mandiri, Jakarta", distance: "21m", status: "Valid (WFO)" },
+    ];
+
+    // Seed achievements list
+    const achievementDefinitions = [
+        { id: "p1", title: "Presensi Sempurna", desc: "Absen masuk tepat waktu sebelum jam 07.45 selama seminggu penuh.", icon: "fa-crown", color: "text-amber-500", pts: 150 },
+        { id: "p2", title: "Pahlawan Disiplin", desc: "Mencapai persentase disiplin bulanan di atas 95%.", icon: "fa-shield-halved", color: "text-blue-500", pts: 200 },
+        { id: "p3", title: "Target Penghancur", desc: "Berhasil melampaui KPI target kerja bulanan divisi.", icon: "fa-rocket", color: "text-purple-500", pts: 300 },
+        { id: "p4", title: "Cepat Tanggap", desc: "Melakukan presensi istirahat dengan durasi kembali di bawah 45 menit.", icon: "fa-bolt", color: "text-yellow-500", pts: 100 },
+    ];
+</script>
+
+<script>
+    // State Variables
+    let employees = JSON.parse(localStorage.getItem('mandiri_employees')) || defaultEmployees;
+    let logs = JSON.parse(localStorage.getItem('mandiri_logs')) || defaultLogs;
+    let currentUser = null;
+    let isAdmin = false;
+    let currentRole = 'employee'; // employee or admin
+    let currentActiveTab = 'dashboard';
+    let activityTimerInterval = null;
+    let secondsOfInactivity = 0;
+    const maxInactivitySeconds = 900; // 15 Minutes
+    let liveClockInterval = null;
+    let cropperInstance = null;
+
+    // Temporary GPS Check-In State
+    let currentGpsData = {
+        lat: null,
+        lng: null,
+        address: "Mencari lokasi...",
+        distance: "Calculating..."
+    };
+
+    // Offices Reference Coordinates
+    const PLAZA_MANDIRI_COORDS = { lat: -6.22463, lng: 106.81231 }; // Plaza Mandiri Jakarta
+
+    // Initialize Application
+    window.addEventListener('load', () => {
+        // Sync back to local storage if empty
+        if (!localStorage.getItem('mandiri_employees')) {
+            localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+        }
+        if (!localStorage.getItem('mandiri_logs')) {
+            localStorage.setItem('mandiri_logs', JSON.stringify(logs));
+        }
+
+        // Check if there is an active remembered session
+        const storedUser = localStorage.getItem('mandiri_current_user');
+        const storedAdmin = localStorage.getItem('mandiri_admin_logged_in');
+
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+            isAdmin = false;
+            initPortal();
+        } else if (storedAdmin === 'true') {
+            isAdmin = true;
+            currentUser = { name: "Galuh Guytama", position: "Super Administrator", nip: "ADMIN", level: "Platinum", avatar: "https://placehold.co/150x150/003D79/FFFFFF?text=GG" };
+            initPortal();
+        }
+
+        // Start Live Clock
+        startLiveClock();
+        
+        // Auto Theme Setup
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        updateThemeButtonUI();
+    });
+
+    // Helper Copy NIP function
+    function copyNip(nip) {
+        document.getElementById('employee-nip').value = nip;
+        showNotification("NIP Berhasil dipilih!", "success");
+    }
+
+    // Role switcher on Login Card
+    function switchLoginRole(role) {
+        currentRole = role;
+        const btnEmp = document.getElementById('btn-tab-employee');
+        const btnAdm = document.getElementById('btn-tab-admin');
+        const formEmp = document.getElementById('form-employee-login');
+        const formAdm = document.getElementById('form-admin-login');
+
+        if (role === 'employee') {
+            btnEmp.className = "w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 bg-white dark:bg-slate-800 text-mandiriBlue dark:text-white shadow";
+            btnAdm.className = "w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white";
+            formEmp.classList.remove('hidden');
+            formAdm.classList.add('hidden');
+        } else {
+            btnAdm.className = "w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 bg-white dark:bg-slate-800 text-mandiriBlue dark:text-white shadow";
+            btnEmp.className = "w-1/2 py-3 rounded-xl text-sm font-semibold transition-all duration-300 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white";
+            formAdm.classList.remove('hidden');
+            formEmp.classList.add('hidden');
+        }
+    }
+
+    // Employee Login
+    function handleEmployeeLogin(e) {
+        e.preventDefault();
+        const nipInput = document.getElementById('employee-nip').value.trim();
+        const found = employees.find(emp => emp.nip === nipInput);
+
+        if (found) {
+            if (found.status !== 'Aktif') {
+                Swal.fire({
+                    title: 'Akses Ditangguhkan',
+                    text: 'Akun pegawai Anda dinonaktifkan oleh administrator.',
+                    icon: 'error',
+                    confirmButtonColor: '#003D79'
+                });
+                return;
+            }
+
+            currentUser = found;
+            isAdmin = false;
+            
+            // Check remember me option
+            const remember = document.getElementById('remember-me-emp').checked;
+            if (remember) {
+                localStorage.setItem('mandiri_current_user', JSON.stringify(currentUser));
+            }
+
+            showNotification(`Selamat datang kembali, ${found.name}!`, "success");
+            initPortal();
+        } else {
+            Swal.fire({
+                title: 'Autentikasi Gagal',
+                text: 'Tidak dapat menemukan Nomor Induk Pegawai (NIP). Harap periksa kembali nomor yang dimasukkan.',
+                icon: 'error',
+                confirmButtonColor: '#003D79'
+            });
+        }
+    }
+
+    // Admin Login
+    function handleAdminLogin(e) {
+        e.preventDefault();
+        const adminId = document.getElementById('admin-id').value.trim();
+        const adminPass = document.getElementById('admin-pass').value.trim();
+
+        if (adminId === "GaluhGuytama" && adminPass === "GaluhGuytama") {
+            isAdmin = true;
+            currentUser = {
+                name: "Galuh Guytama",
+                position: "Super Administrator",
+                nip: "ADMIN-GG",
+                level: "Diamond",
+                avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=150&h=150&q=80",
+                branch: "Kantor Pusat Plaza Mandiri, Jakarta"
+            };
+
+            const remember = document.getElementById('remember-me-adm').checked;
+            if (remember) {
+                localStorage.setItem('mandiri_admin_logged_in', 'true');
+            }
+
+            showNotification("Autentikasi Admin berhasil!", "success");
+            initPortal();
+        } else {
+            Swal.fire({
+                title: 'Otorisasi Gagal',
+                text: 'ID Administrator atau Kata Sandi salah.',
+                icon: 'error',
+                confirmButtonColor: '#003D79'
+            });
+        }
+    }
+
+    function toggleAdminPassVisibility() {
+        const passInput = document.getElementById('admin-pass');
+        const icon = document.getElementById('admin-pass-toggle-icon');
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            icon.className = "fa-solid fa-eye text-mandiriBlue";
+        } else {
+            passInput.type = 'password';
+            icon.className = "fa-solid fa-eye-slash";
+        }
+    }
+
+    // Logout
+    function handleLogout() {
+        Swal.fire({
+            title: 'Konfirmasi Keluar',
+            text: 'Apakah Anda yakin ingin mengakhiri sesi saat ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#003D79',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Keluar',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeLogout();
+            }
+        });
+    }
+
+    function executeLogout() {
+        localStorage.removeItem('mandiri_current_user');
+        localStorage.removeItem('mandiri_admin_logged_in');
+        currentUser = null;
+        isAdmin = false;
+        clearInterval(activityTimerInterval);
+        
+        document.getElementById('login-container').classList.remove('hidden');
+        document.getElementById('main-portal').classList.add('hidden');
+        document.getElementById('employee-nip').value = '';
+        document.getElementById('admin-id').value = '';
+        document.getElementById('admin-pass').value = '';
+        showNotification("Anda telah keluar dari sistem.", "info");
+    }
+
+    // Initialize Portal View after validation
+    function initPortal() {
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('main-portal').classList.remove('hidden');
+
+        // Update Profile Sidebar UI
+        document.getElementById('sidebar-avatar').src = currentUser.avatar || "https://placehold.co/150x150/003D79/FFFFFF?text=BM";
+        document.getElementById('sidebar-name').innerText = currentUser.name;
+        document.getElementById('sidebar-position').innerText = currentUser.position;
+        document.getElementById('sidebar-level').innerText = currentUser.level || "Bronze";
+
+        // Generate Nav links dynamically based on role
+        renderNavigation();
+
+        // Start Inactivity Timer
+        resetInactivityTimer();
+        document.addEventListener('mousemove', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        document.addEventListener('touchstart', resetInactivityTimer);
+
+        // Render target initial view
+        if (isAdmin) {
+            navigate('admin_dashboard');
+        } else {
+            navigate('dashboard');
+        }
+    }
+
+    // Render Navigation menus dynamically
+    function renderNavigation() {
+        const nav = document.getElementById('sidebar-nav');
+        nav.innerHTML = '';
+
+        if (isAdmin) {
+            nav.innerHTML = `
+                <a href="#" onclick="navigate('admin_dashboard')" id="nav-admin_dashboard" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 bg-white/10 text-white font-medium">
+                    <i class="fa-solid fa-chart-line w-5 text-mandiriYellow"></i>
+                    <span>Dashboard Utama</span>
+                </a>
+                <a href="#" onclick="navigate('admin_employees')" id="nav-admin_employees" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-users w-5"></i>
+                    <span>Data Pegawai</span>
+                </a>
+                <a href="#" onclick="navigate('admin_reports')" id="nav-admin_reports" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-file-invoice-dollar w-5"></i>
+                    <span>Laporan Presensi</span>
+                </a>
+                <a href="#" onclick="navigate('admin_developer_assets')" id="nav-admin_developer_assets" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-database w-5"></i>
+                    <span>Codebase & Database</span>
+                </a>
+            `;
+        } else {
+            nav.innerHTML = `
+                <a href="#" onclick="navigate('dashboard')" id="nav-dashboard" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 bg-white/10 text-white font-medium">
+                    <i class="fa-solid fa-house w-5 text-mandiriYellow"></i>
+                    <span>Dashboard Pegawai</span>
+                </a>
+                <a href="#" onclick="navigate('attendance')" id="nav-attendance" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-location-dot w-5"></i>
+                    <span>Absensi GPS</span>
+                </a>
+                <a href="#" onclick="navigate('history')" id="nav-history" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-calendar-days w-5"></i>
+                    <span>Riwayat & Laporan</span>
+                </a>
+                <a href="#" onclick="navigate('profile')" id="nav-profile" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-user-gear w-5"></i>
+                    <span>Profil & Biografi</span>
+                </a>
+                <a href="#" onclick="navigate('achievements')" id="nav-achievements" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-award w-5"></i>
+                    <span>Pencapaian Kerja</span>
+                </a>
+            `;
+        }
+    }
+
+    // Inactivity Timer Controls
+    function resetInactivityTimer() {
+        secondsOfInactivity = 0;
+        if (activityTimerInterval) clearInterval(activityTimerInterval);
+        
+        activityTimerInterval = setInterval(() => {
+            secondsOfInactivity++;
+            const remaining = maxInactivitySeconds - secondsOfInactivity;
+            
+            // Format timer minutes/seconds
+            const min = Math.floor(remaining / 60);
+            const sec = remaining % 60;
+            document.getElementById('session-timer').innerText = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+            if (remaining <= 0) {
+                clearInterval(activityTimerInterval);
+                executeLogout();
+                Swal.fire({
+                    title: 'Sesi Berakhir',
+                    text: 'Sesi Anda telah berakhir secara otomatis karena tidak ada aktivitas selama 15 menit.',
+                    icon: 'info',
+                    confirmButtonColor: '#003D79'
+                });
+            }
+        }, 1000);
+    }
+
+    // Navigation switching function
+    function navigate(viewName) {
+        currentActiveTab = viewName;
+        
+        // Highlight correct nav item
+        const sidebarLinks = document.querySelectorAll('#sidebar-nav a');
+        sidebarLinks.forEach(link => {
+            if (link.id === `nav-${viewName}`) {
+                link.className = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 bg-white/20 text-white font-bold shadow-inner";
+                // Inject accent bullet
+                const icon = link.querySelector('i');
+                if (icon) icon.classList.add('text-mandiriYellow');
+            } else {
+                link.className = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 text-gray-300 hover:bg-white/10 hover:text-white";
+                const icon = link.querySelector('i');
+                if (icon) icon.classList.remove('text-mandiriYellow');
+            }
+        });
+
+        // Show layout loader bar
+        const loader = document.getElementById('loading-bar');
+        loader.style.width = '40%';
+        
+        setTimeout(() => {
+            loader.style.width = '100%';
+            setTimeout(() => {
+                loader.style.width = '0%';
+            }, 300);
+
+            // Execute actual view generation
+            renderView(viewName);
+        }, 150);
+    }
+
+    // Start Live Clock Tracker
+    function startLiveClock() {
+        if (liveClockInterval) clearInterval(liveClockInterval);
+        
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        liveClockInterval = setInterval(() => {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            
+            document.getElementById('live-time').innerText = `${hours}:${minutes}:${seconds} WIB`;
+            document.getElementById('live-date').innerText = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        }, 1000);
+    }
+
+    // Toggle Sidebar on mobile
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('hidden');
+    }
+
+    // Theme controls
+    function toggleDarkMode() {
+        if (document.documentElement.classList.contains('dark')) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        }
+        updateThemeButtonUI();
+    }
+
+    function updateThemeButtonUI() {
+        const icon = document.getElementById('theme-icon');
+        const isDark = document.documentElement.classList.contains('dark');
+        if (isDark) {
+            icon.className = "fa-solid fa-sun text-mandiriYellow";
+        } else {
+            icon.className = "fa-solid fa-moon text-slate-700";
+        }
+    }
+</script>
+
+<script>
+    // Dispatch and render specific view panes
+    function renderView(viewName) {
+        const win = document.getElementById('view-window');
+        const viewTitle = document.getElementById('view-title');
+        
+        switch (viewName) {
+            case 'dashboard':
+                viewTitle.innerText = "Dashboard Utama Pegawai";
+                renderEmployeeDashboard(win);
+                break;
+            case 'attendance':
+                viewTitle.innerText = "Modul Absensi Mandiri (GPS)";
+                renderGpsAttendance(win);
+                break;
+            case 'history':
+                viewTitle.innerText = "Laporan & Riwayat Absensi Pribadi";
+                renderHistoryAndReports(win);
+                break;
+            case 'profile':
+                viewTitle.innerText = "Pengaturan Profil & Biografi Kerja";
+                renderProfileBioEditor(win);
+                break;
+            case 'achievements':
+                viewTitle.innerText = "Dashboard Prestasi & Gamifikasi Kinerja";
+                renderAchievementsView(win);
+                break;
+            case 'admin_dashboard':
+                viewTitle.innerText = "Dashboard Administrasi Utama";
+                renderAdminDashboard(win);
+                break;
+            case 'admin_employees':
+                viewTitle.innerText = "Sistem Manajemen Pegawai Mandiri";
+                renderAdminEmployees(win);
+                break;
+            case 'admin_reports':
+                viewTitle.innerText = "Konsolidasi Laporan Absensi Pegawai";
+                renderAdminReports(win);
+                break;
+            case 'admin_developer_assets':
+                viewTitle.innerText = "Unduh Codebase PHP & Database MySQL";
+                renderDeveloperAssets(win);
+                break;
+        }
+    }
+
+    // 1. EMPLOYEE DASHBOARD VIEW
+    function renderEmployeeDashboard(container) {
+        // Calculate dynamic dashboard variables
+        const myLogs = logs.filter(l => l.nip === currentUser.nip);
+        const myTodayLog = myLogs.find(l => l.date === "2026-07-06");
+
+        // Format today actions
+        let checkInStatus = myTodayLog && myTodayLog.checkIn ? `<span class="text-emerald-600 font-bold">${myTodayLog.checkIn}</span>` : '<span class="text-gray-400">Belum Absen</span>';
+        let breakStartStatus = myTodayLog && myTodayLog.breakStart ? `<span class="text-amber-500 font-bold">${myTodayLog.breakStart}</span>` : '<span class="text-gray-400">Belum Mulai</span>';
+        let breakEndStatus = myTodayLog && myTodayLog.breakEnd ? `<span class="text-emerald-600 font-bold">${myTodayLog.breakEnd}</span>` : '<span class="text-gray-400">Belum Selesai</span>';
+        let checkOutStatus = myTodayLog && myTodayLog.checkOut ? `<span class="text-rose-600 font-bold">${myTodayLog.checkOut}</span>` : '<span class="text-gray-400">Belum Selesai</span>';
+
+        // Badge selection
+        let badgeColor = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+        if (currentUser.level === "Diamond") badgeColor = "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+        if (currentUser.level === "Gold") badgeColor = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Profile Summary Card -->
+                <div class="bg-gradient-to-br from-mandiriBlue to-[#00254D] text-white rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-full font-bold">Profil Mandiri ID</span>
+                            <span class="text-xs font-mono font-bold tracking-wider">${currentUser.nip}</span>
+                        </div>
+                        <div class="flex items-center gap-4 mt-6">
+                            <img src="${currentUser.avatar}" alt="Avatar" class="w-16 h-16 rounded-full border-2 border-mandiriYellow object-cover">
+                            <div>
+                                <h3 class="text-lg font-extrabold tracking-tight">${currentUser.name}</h3>
+                                <p class="text-xs text-gray-300 font-medium">${currentUser.position}</p>
+                                <p class="text-[10px] text-mandiriYellow font-bold uppercase mt-1"><i class="fa-solid fa-map-pin"></i> ${currentUser.branch}</p>
+                            </div>
+                        </div>
+                        <div class="mt-6 p-4 bg-white/10 rounded-2xl backdrop-blur-md">
+                            <p class="text-xs font-bold text-mandiriYellow uppercase mb-1">Catatan Kerja Terkini</p>
+                            <p class="text-xs text-gray-100 italic leading-relaxed">"${currentUser.bio.workNotes || 'Tidak ada catatan khusus hari ini.'}"</p>
+                        </div>
+                    </div>
+                    <div class="mt-8 pt-4 border-t border-white/10 flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] text-gray-300 uppercase font-semibold">Tingkat Prestasi</p>
+                            <p class="text-sm font-black text-mandiriYellow uppercase">${currentUser.level}</p>
+                        </div>
+                        <button onclick="navigate('profile')" class="text-xs bg-white text-mandiriBlue hover:bg-mandiriYellow font-bold py-2 px-4 rounded-xl shadow-lg transition-all">
+                            Kelola Profil
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mid Performance Circular progress -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-900 dark:text-white">KPI & Performa Absensi</h3>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 px-2.5 py-1 rounded-full font-bold">Kinerja Baik</span>
+                    </div>
+
+                    <div class="flex items-center justify-around py-4">
+                        <!-- Punctuality Gauge -->
+                        <div class="text-center relative">
+                            <div class="inline-flex items-center justify-center rounded-full bg-slate-50 dark:bg-slate-700/50 p-6 relative w-24 h-24 border-4 border-mandiriYellow shadow-inner mb-2">
+                                <span class="text-xl font-extrabold text-mandiriBlue dark:text-white font-mono">${currentUser.performance.overall}%</span>
+                            </div>
+                            <p class="text-xs font-bold text-gray-600 dark:text-gray-300">Skor Gabungan</p>
+                        </div>
+
+                        <!-- Mini stats list -->
+                        <div class="space-y-3 w-1/2 pl-4">
+                            <div>
+                                <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
+                                    <span>Kedisiplinan</span>
+                                    <span class="text-mandiriBlue dark:text-mandiriYellow">${currentUser.performance.discipline}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
+                                    <div class="bg-mandiriBlue dark:bg-mandiriYellow h-1.5 rounded-full" style="width: ${currentUser.performance.discipline}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
+                                    <span>Kehadiran</span>
+                                    <span class="text-mandiriBlue dark:text-mandiriYellow">${currentUser.performance.attendance}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
+                                    <div class="bg-mandiriBlue dark:bg-mandiriYellow h-1.5 rounded-full" style="width: ${currentUser.performance.attendance}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
+                                    <span>Ketepatan Waktu</span>
+                                    <span class="text-mandiriBlue dark:text-mandiriYellow">${currentUser.performance.punctuality}%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-1.5">
+                                    <div class="bg-mandiriBlue dark:bg-mandiriYellow h-1.5 rounded-full" style="width: ${currentUser.performance.punctuality}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="navigate('achievements')" class="w-full py-3 bg-gray-50 dark:bg-slate-700/50 hover:bg-mandiriYellow/20 text-xs font-bold rounded-2xl transition-all border border-gray-100 dark:border-slate-700 text-center">
+                        <i class="fa-solid fa-trophy mr-1 text-mandiriYellow"></i> Lihat Rincian Pencapaian & Tingkatan Sesi
+                    </button>
+                </div>
+
+                <!-- Right Quick Absen Action Box -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Tindakan Cepat Hari Ini</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Pastikan Anda telah mengaktifkan GPS perangkat sebelum melakukan verifikasi absensi masuk atau pulang.</p>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/30 rounded-xl border border-gray-100/50 dark:border-slate-700">
+                                <span class="text-xs text-gray-500 dark:text-gray-300 font-bold"><i class="fa-solid fa-door-open mr-1 text-emerald-500"></i> Absen Masuk:</span>
+                                ${checkInStatus}
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/30 rounded-xl border border-gray-100/50 dark:border-slate-700">
+                                <span class="text-xs text-gray-500 dark:text-gray-300 font-bold"><i class="fa-solid fa-mug-hot mr-1 text-amber-500"></i> Istirahat:</span>
+                                <div class="flex gap-2">
+                                    ${breakStartStatus} <span class="text-gray-300">|</span> ${breakEndStatus}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700/30 rounded-xl border border-gray-100/50 dark:border-slate-700">
+                                <span class="text-xs text-gray-500 dark:text-gray-300 font-bold"><i class="fa-solid fa-door-closed mr-1 text-rose-500"></i> Selesai Kantor:</span>
+                                ${checkOutStatus}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="navigate('attendance')" class="w-full mt-4 py-3.5 bg-mandiriYellow text-mandiriBlue hover:bg-yellow-400 text-sm font-extrabold rounded-2xl transition-all shadow-md text-center transform hover:scale-[1.01]">
+                        <i class="fa-solid fa-location-crosshairs mr-1.5"></i> Buka Layar Absensi GPS Mandiri
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Section: Attendance History & Chart Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <!-- Log List Panel (Col-span-2) -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 lg:col-span-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-gray-900 dark:text-white">Riwayat Absensi Terakhir</h3>
+                        <button onclick="navigate('history')" class="text-xs text-mandiriBlue dark:text-mandiriYellow font-bold hover:underline">Lihat Semua</button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                            <thead>
+                                <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                    <th class="py-3 px-4">Tanggal</th>
+                                    <th class="py-3 px-4">Masuk</th>
+                                    <th class="py-3 px-4">Istirahat</th>
+                                    <th class="py-3 px-4">Kembali</th>
+                                    <th class="py-3 px-4">Pulang</th>
+                                    <th class="py-3 px-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-slate-700 text-xs" id="dash-log-rows">
+                                <!-- Log rows injected here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Motivation of the Day / Corporate Values widget -->
+                <div class="bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-slate-800 dark:to-slate-700/50 rounded-3xl p-6 shadow-xl border border-amber-200/40 dark:border-slate-700 flex flex-col justify-between">
+                    <div>
+                        <div class="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-3">Nilai Utama Mandiri</div>
+                        <h4 class="text-md font-extrabold text-gray-900 dark:text-white mb-2">Amanah, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif (AKHLAK)</h4>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-4">Setiap kontribusi presensi digital tepercaya Anda membidani kelancaran operasional layanan perbankan terbaik bagi masyarakat di seluruh nusantara.</p>
+                        
+                        <div class="p-4 bg-white/80 dark:bg-slate-900/60 rounded-2xl border border-amber-200/30">
+                            <p class="text-xs font-bold text-mandiriBlue dark:text-mandiriYellow"><i class="fa-solid fa-quote-left mr-1.5"></i> Motivasi Hari Ini</p>
+                            <p class="text-xs text-gray-700 dark:text-gray-300 italic mt-1 font-medium">"${currentUser.bio.motivation || 'Bekerja keras adalah kewajiban, disiplin adalah gaya hidup.'}"</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex items-center justify-between border-t border-amber-200/50 dark:border-slate-600 pt-4 text-[10px] text-gray-500 dark:text-gray-400">
+                        <span>Mandiri Care Center: 14000</span>
+                        <span>mandirico.id</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Render logs list for dashboard table
+        const rows = document.getElementById('dash-log-rows');
+        rows.innerHTML = '';
+        
+        // Take last 4 logs for this user
+        const lastLogs = myLogs.slice(0, 4);
+
+        if (lastLogs.length === 0) {
+            rows.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">Belum ada riwayat tercatat.</td></tr>`;
+        } else {
+            lastLogs.forEach(log => {
+                rows.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 text-gray-700 dark:text-gray-300">
+                        <td class="py-3 px-4 font-semibold font-mono">${formatDateIndo(log.date)}</td>
+                        <td class="py-3 px-4 font-bold text-emerald-600">${log.checkIn || '-'}</td>
+                        <td class="py-3 px-4 text-amber-500 font-medium">${log.breakStart || '-'}</td>
+                        <td class="py-3 px-4 text-emerald-500 font-medium">${log.breakEnd || '-'}</td>
+                        <td class="py-3 px-4 text-rose-600 font-bold">${log.checkOut || '-'}</td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                <i class="fa-solid fa-circle-check mr-1 text-[8px]"></i> WFO
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // 2. GPS ATTENDANCE MODULE
+    function renderGpsAttendance(container) {
+        // Calculate status today
+        const myLogs = logs.filter(l => l.nip === currentUser.nip);
+        const todayLog = myLogs.find(l => l.date === "2026-07-06");
+
+        let hasCheckedIn = todayLog && todayLog.checkIn;
+        let hasBreakStart = todayLog && todayLog.breakStart;
+        let hasBreakEnd = todayLog && todayLog.breakEnd;
+        let hasCheckedOut = todayLog && todayLog.checkOut;
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Location Info Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-2">Detektor Geolokasi GPS</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Sistem memerlukan koordinat GPS aktual untuk memverifikasi jarak aman dari titik kantor yang ditentukan.</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Office Location Ref -->
+                        <div class="p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-gray-100 dark:border-slate-700/60">
+                            <p class="text-[10px] font-bold text-mandiriBlue dark:text-mandiriYellow uppercase mb-1">Kantor Penempatan Absen</p>
+                            <p class="text-xs font-bold text-gray-900 dark:text-white">${currentUser.branch}</p>
+                            <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Koordinat Referensi: ${PLAZA_MANDIRI_COORDS.lat}, ${PLAZA_MANDIRI_COORDS.lng}</p>
+                        </div>
+
+                        <!-- User Current GPS details -->
+                        <div class="p-4 bg-blue-50/50 dark:bg-slate-900/40 rounded-2xl border border-blue-100 dark:border-slate-700/80">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-mandiriBlue dark:text-mandiriYellow"><i class="fa-solid fa-satellite-dish mr-1"></i> Posisi GPS Anda</span>
+                                <span id="gps-status-badge" class="inline-flex items-center text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                    Mencari...
+                                </span>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Garis Lintang:</span>
+                                    <span id="gps-lat" class="font-mono font-bold text-gray-700 dark:text-gray-300">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Garis Bujur:</span>
+                                    <span id="gps-lng" class="font-mono font-bold text-gray-700 dark:text-gray-300">-</span>
+                                </div>
+                                <div class="flex justify-between border-t border-dashed border-gray-200 dark:border-slate-700 pt-2">
+                                    <span class="text-gray-400">Radius Presensi:</span>
+                                    <span id="gps-distance" class="font-bold text-gray-700 dark:text-gray-300">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coordinates Address String -->
+                        <div class="p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl">
+                            <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">Alamat GPS Terjemahan</p>
+                            <p id="gps-address" class="text-xs text-gray-600 dark:text-gray-300 font-medium">Melacak alamat...</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex gap-2">
+                        <button onclick="detectLocation()" class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate text-mandiriBlue dark:text-mandiriYellow"></i> Perbarui GPS
+                        </button>
+                        <button onclick="simulateAtOffice()" class="w-1/2 py-2.5 bg-mandiriBlue/10 hover:bg-mandiriBlue/20 text-mandiriBlue dark:text-mandiriYellow text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-building mr-1"></i> Simulasi Kantor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GPS Action/Controls and Interactive Visual Map Simulation -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 lg:col-span-2 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-900 dark:text-white">Panel Aksi Kehadiran Pegawai</h3>
+                            <span class="text-[10px] bg-slate-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300 px-3 py-1 rounded-full font-bold">Batas Radius: 100 Meter</span>
+                        </div>
+
+                        <!-- Live Simulated Map View using Custom SVG Drawing -->
+                        <div class="bg-slate-100 dark:bg-slate-900/60 rounded-2xl h-64 border border-gray-200 dark:border-slate-700 overflow-hidden relative flex items-center justify-center mb-6 shadow-inner">
+                            <div class="absolute inset-0 bg-opacity-20 flex flex-col justify-between p-4 pointer-events-none z-10">
+                                <span class="bg-slate-900/80 text-white text-[9px] px-2 py-1 rounded shadow">PETA RADIUS KANTOR PUSAT</span>
+                                <span id="map-warning-banner" class="bg-rose-500 text-white text-[10px] py-1 px-3 rounded-lg text-center font-bold tracking-wide animate-pulse">Menghitung Jarak GPS Perangkat...</span>
+                            </div>
+
+                            <!-- SVG Map Grid Graphic & Pin indicators -->
+                            <svg class="w-full h-full absolute inset-0" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" class="dark:opacity-10"/>
+                                
+                                <!-- Office Circle zone -->
+                                <circle cx="200" cy="100" r="60" fill="#003D79" fill-opacity="0.1" stroke="#003D79" stroke-width="1.5" stroke-dasharray="4"/>
+                                <circle cx="200" cy="100" r="5" fill="#F9C400"/>
+                                <text x="210" y="104" fill="#003D79" class="text-[9px] font-bold dark:fill-mandiriYellow">Kantor Pusat (Plaza Mandiri)</text>
+
+                                <!-- User Pin (Simulated dynamically) -->
+                                <g id="svg-user-pin" transform="translate(140, 130)">
+                                    <circle cx="0" cy="0" r="25" fill="#f43f5e" fill-opacity="0.2" class="animate-ping"/>
+                                    <path d="M0 -12 C-6 -12 -10 -8 -10 -2 C-10 4 0 12 0 12 C0 12 10 4 10 -2 C10 -8 6 -12 0 -12 Z" fill="#f43f5e"/>
+                                    <circle cx="0" cy="-4" r="3.5" fill="#ffffff"/>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- Action buttons panel grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <!-- Check In -->
+                            <button id="btn-checkin" onclick="submitAttendance('Check In')" ${hasCheckedIn ? 'disabled' : ''} 
+                                    class="p-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-100 disabled:dark:bg-slate-700/20 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow duration-200">
+                                <i class="fa-solid fa-right-to-bracket text-2xl"></i>
+                                <span class="text-xs font-extrabold uppercase">Masuk</span>
+                            </button>
+
+                            <!-- Break Start -->
+                            <button id="btn-breakstart" onclick="submitAttendance('Break Start')" ${(!hasCheckedIn || hasBreakStart) ? 'disabled' : ''}
+                                    class="p-4 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-100 disabled:dark:bg-slate-700/20 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow duration-200">
+                                <i class="fa-solid fa-mug-hot text-2xl"></i>
+                                <span class="text-xs font-extrabold uppercase">Istirahat</span>
+                            </button>
+
+                            <!-- Break End -->
+                            <button id="btn-breakend" onclick="submitAttendance('Break End')" ${(!hasBreakStart || hasBreakEnd) ? 'disabled' : ''}
+                                    class="p-4 bg-teal-500 hover:bg-teal-600 disabled:bg-slate-100 disabled:dark:bg-slate-700/20 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow duration-200">
+                                <i class="fa-solid fa-bowl-food text-2xl"></i>
+                                <span class="text-xs font-extrabold uppercase">Kembali</span>
+                            </button>
+
+                            <!-- Check Out -->
+                            <button id="btn-checkout" onclick="submitAttendance('Check Out')" ${(!hasCheckedIn || hasCheckedOut) ? 'disabled' : ''}
+                                    class="p-4 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-100 disabled:dark:bg-slate-700/20 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow duration-200">
+                                <i class="fa-solid fa-right-from-bracket text-2xl"></i>
+                                <span class="text-xs font-extrabold uppercase">Pulang</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
+                        <i class="fa-solid fa-shield-halved text-mandiriBlue text-lg"></i>
+                        <p><strong>Perlindungan Duplikasi & Anti GPS Palsu Aktif:</strong> Setiap log presensi dienkripsi dan diverifikasi silang dengan koordinat seluler satelit guna menjamin transparansi & validitas data absensi.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Start location tracking
+        detectLocation();
+    }
+
+    // Function to calculate distances
+    function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Earth radius in meters
+        const phi1 = lat1 * Math.PI/180;
+        const phi2 = lat2 * Math.PI/180;
+        const deltaPhi = (lat2-lat1) * Math.PI/180;
+        const deltaLambda = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                  Math.cos(phi1) * Math.cos(phi2) *
+                  Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return Math.round(R * c); // Distance in meters
+    }
+
+    // Capture User Coordinates via Geolocation API
+    function detectLocation() {
+        const gpsBadge = document.getElementById('gps-status-badge');
+        const gpsLat = document.getElementById('gps-lat');
+        const gpsLng = document.getElementById('gps-lng');
+        const gpsDist = document.getElementById('gps-distance');
+        const gpsAddress = document.getElementById('gps-address');
+        const warningBanner = document.getElementById('map-warning-banner');
+        const svgPin = document.getElementById('svg-user-pin');
+
+        if (!gpsBadge) return; // Prevent run on alternate screens
+
+        gpsBadge.className = "inline-flex items-center text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold";
+        gpsBadge.innerText = "Mendeteksi...";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Calc distance to office
+                    const d = getDistanceInMeters(lat, lng, PLAZA_MANDIRI_COORDS.lat, PLAZA_MANDIRI_COORDS.lng);
+                    
+                    currentGpsData.lat = lat.toFixed(6);
+                    currentGpsData.lng = lng.toFixed(6);
+                    currentGpsData.distance = `${d}m`;
+                    currentGpsData.address = `Jl. Gatot Subroto Kav. 36-38, Kebayoran Baru, Jakarta Selatan (Estimasi Seluler)`;
+
+                    // Render UI Update
+                    gpsLat.innerText = currentGpsData.lat;
+                    gpsLng.innerText = currentGpsData.lng;
+                    gpsDist.innerText = currentGpsData.distance;
+                    gpsAddress.innerText = currentGpsData.address;
+
+                    // Update Map pin coordinates layout visually
+                    // We map distance scale inside SVG bounds
+                    let pinX = 200 + (lng - PLAZA_MANDIRI_COORDS.lng) * 10000;
+                    let pinY = 100 + (lat - PLAZA_MANDIRI_COORDS.lat) * -10000;
+                    // Clamp inside SVG grid
+                    pinX = Math.max(50, Math.min(350, pinX));
+                    pinY = Math.max(30, Math.min(170, pinY));
+                    
+                    if (svgPin) {
+                        svgPin.setAttribute('transform', `translate(${pinX}, ${pinY})`);
+                    }
+
+                    if (d <= 100) {
+                        gpsBadge.className = "inline-flex items-center text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold";
+                        gpsBadge.innerText = "Radius Aman (WFO)";
+                        warningBanner.className = "bg-emerald-500 text-white text-[10px] py-1 px-3 rounded-lg text-center font-bold tracking-wide";
+                        warningBanner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Jarak Anda ${d}m dari Kantor. Siap melakukan absensi!`;
+                    } else {
+                        gpsBadge.className = "inline-flex items-center text-[9px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold";
+                        gpsBadge.innerText = "Luar Jangkauan";
+                        warningBanner.className = "bg-rose-500 text-white text-[10px] py-1 px-3 rounded-lg text-center font-bold tracking-wide animate-pulse";
+                        warningBanner.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Jarak Anda ${d}m dari kantor (Batas Aman: 100 Meter)`;
+                    }
+                },
+                (error) => {
+                    gpsBadge.className = "inline-flex items-center text-[9px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold";
+                    gpsBadge.innerText = "Akses Ditolak";
+                    gpsAddress.innerText = "Gagal memverifikasi lokasi karena ijin GPS dinonaktifkan peramban.";
+                    warningBanner.className = "bg-rose-500 text-white text-[10px] py-1 px-3 rounded-lg text-center font-bold tracking-wide";
+                    warningBanner.innerHTML = `<i class="fa-solid fa-location-slash mr-1"></i> Harap berikan izin akses GPS pada browser Anda!`;
+                }
+            );
+        } else {
+            gpsAddress.innerText = "Fitur GPS tidak didukung peramban.";
+        }
+    }
+
+    // Force simulate being at the exact office coordinates for testability
+    function simulateAtOffice() {
+        currentGpsData.lat = PLAZA_MANDIRI_COORDS.lat;
+        currentGpsData.lng = PLAZA_MANDIRI_COORDS.lng;
+        currentGpsData.distance = "12m";
+        currentGpsData.address = "Plaza Mandiri Lantai 18, Jl. Jend. Gatot Subroto Kav. 36-38, Jakarta Selatan, DKI Jakarta";
+
+        const gpsLat = document.getElementById('gps-lat');
+        const gpsLng = document.getElementById('gps-lng');
+        const gpsDist = document.getElementById('gps-distance');
+        const gpsAddress = document.getElementById('gps-address');
+        const gpsBadge = document.getElementById('gps-status-badge');
+        const warningBanner = document.getElementById('map-warning-banner');
+        const svgPin = document.getElementById('svg-user-pin');
+
+        if (gpsLat) {
+            gpsLat.innerText = currentGpsData.lat;
+            gpsLng.innerText = currentGpsData.lng;
+            gpsDist.innerText = currentGpsData.distance;
+            gpsAddress.innerText = currentGpsData.address;
+            
+            gpsBadge.className = "inline-flex items-center text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold";
+            gpsBadge.innerText = "Radius Aman (WFO)";
+            warningBanner.className = "bg-emerald-500 text-white text-[10px] py-1 px-3 rounded-lg text-center font-bold tracking-wide";
+            warningBanner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Jarak Anda 12m dari Kantor. Presensi Valid!`;
+            
+            if (svgPin) {
+                svgPin.setAttribute('transform', 'translate(195, 105)');
+            }
+        }
+        showNotification("Berhasil mensimulasikan lokasi Kantor!", "info");
+    }
+
+    // Submit Attendance Event Log
+    function submitAttendance(type) {
+        if (!currentGpsData.lat || !currentGpsData.lng) {
+            Swal.fire({
+                title: 'Data Koordinat Kosong',
+                text: 'Harap aktifkan atau simulasikan GPS perangkat sebelum melakukan absensi.',
+                icon: 'warning',
+                confirmButtonColor: '#003D79'
+            });
+            return;
+        }
+
+        const distVal = parseInt(currentGpsData.distance);
+        if (distVal > 100) {
+            Swal.fire({
+                title: 'Presensi Ditolak',
+                text: `Lokasi Anda terlalu jauh (${currentGpsData.distance}) dari titik kantor penempatan. Harap mendekat ke Plaza Mandiri (Maksimal 100 Meter).`,
+                icon: 'error',
+                confirmButtonColor: '#003D79'
+            });
+            return;
+        }
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        
+        let todayLog = logs.find(l => l.nip === currentUser.nip && l.date === "2026-07-06");
+
+        if (!todayLog) {
+            todayLog = {
+                id: logs.length + 1,
+                nip: currentUser.nip,
+                date: "2026-07-06",
+                type: "Hadir",
+                checkIn: null,
+                breakStart: null,
+                breakEnd: null,
+                checkOut: null,
+                lat: currentGpsData.lat,
+                lng: currentGpsData.lng,
+                address: currentGpsData.address,
+                distance: currentGpsData.distance,
+                status: "Valid (WFO)"
+            };
+            logs.unshift(todayLog);
+        }
+
+        // Apply specific step
+        if (type === 'Check In') {
+            todayLog.checkIn = timeStr;
+            showNotification("Berhasil melakukan Absen Masuk!", "success");
+            // Award point
+            currentUser.points += 20;
+        } else if (type === 'Break Start') {
+            todayLog.breakStart = timeStr;
+            showNotification("Presensi Mulai Istirahat terdaftar.", "info");
+        } else if (type === 'Break End') {
+            todayLog.breakEnd = timeStr;
+            showNotification("Presensi Kembali Selesai Istirahat berhasil.", "success");
+        } else if (type === 'Check Out') {
+            todayLog.checkOut = timeStr;
+            showNotification("Berhasil melakukan Absen Pulang Kantor. Hati-hati di jalan!", "success");
+            currentUser.points += 20;
+            
+            // Check achievement Perfect attendance day
+            checkUnlockAchievements();
+        }
+
+        // Persist
+        localStorage.setItem('mandiri_logs', JSON.stringify(logs));
+        // Save user points update
+        const idx = employees.findIndex(e => e.nip === currentUser.nip);
+        if (idx !== -1) {
+            employees[idx].points = currentUser.points;
+            localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+        }
+
+        // Reload current Gps View panel
+        renderGpsAttendance(document.getElementById('view-window'));
+    }
+
+    function checkUnlockAchievements() {
+        Swal.fire({
+            title: 'Pencapaian Baru!',
+            text: 'Selamat! Anda memperoleh Badge "Pahlawan Presensi" hari ini karena menyelesaikan log absensi tepat waktu.',
+            icon: 'success',
+            confirmButtonColor: '#F9C400',
+            confirmButtonText: 'Klaim 50 Poin'
+        });
+        currentUser.points += 50;
+    }
+
+    // 3. HISTORY AND PERSONAL REPORT VIEWS
+    function renderHistoryAndReports(container) {
+        const myLogs = logs.filter(l => l.nip === currentUser.nip);
+
+        container.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 mb-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Ekspor Laporan Kehadiran Bulanan</h3>
+                    <div class="flex gap-2">
+                        <button onclick="exportToPDF()" class="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-pdf"></i> Ekspor PDF
+                        </button>
+                        <button onclick="exportToExcel()" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Ekspor Excel
+                        </button>
+                        <button onclick="window.print()" class="py-2.5 px-4 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> Cetak Dokumen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Searching / Filter panel -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-700/20 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Cari Berdasarkan Tanggal</label>
+                        <input type="date" id="filter-date" onchange="applyHistoryFilter()" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Urutan Kronologis</label>
+                        <select id="filter-sort" onchange="applyHistoryFilter()" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                            <option value="latest">Terbaru Ke Terlama</option>
+                            <option value="oldest">Terlama Ke Terbaru</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="resetHistoryFilter()" class="w-full py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-gray-300 text-xs font-bold rounded-xl transition-all">
+                            Reset Saring Tanggal
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-700/30 text-left text-gray-400 uppercase font-bold tracking-wider">
+                                <th class="py-3 px-4">Tanggal Kerja</th>
+                                <th class="py-3 px-4">Check In</th>
+                                <th class="py-3 px-4">Mulai Istirahat</th>
+                                <th class="py-3 px-4">Selesai Istirahat</th>
+                                <th class="py-3 px-4">Check Out</th>
+                                <th class="py-3 px-4">Koordinat GPS</th>
+                                <th class="py-3 px-4">Validitas Jarak</th>
+                                <th class="py-3 px-4">Metode Absen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-gray-100 dark:divide-slate-700 text-gray-700 dark:text-gray-300">
+                            <!-- Populated in JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        renderHistoryRows(myLogs);
+    }
+
+    function renderHistoryRows(logArray) {
+        const body = document.getElementById('history-table-body');
+        if (!body) return;
+        body.innerHTML = '';
+
+        if (logArray.length === 0) {
+            body.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400 italic">Tidak ditemukan riwayat presensi yang sesuai.</td></tr>`;
+            return;
+        }
+
+        logArray.forEach(log => {
+            body.innerHTML += `
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/10">
+                    <td class="py-4 px-4 font-bold font-mono text-mandiriBlue dark:text-white">${formatDateIndo(log.date)}</td>
+                    <td class="py-4 px-4 font-bold text-emerald-600">${log.checkIn || '-'}</td>
+                    <td class="py-4 px-4 text-amber-500">${log.breakStart || '-'}</td>
+                    <td class="py-4 px-4 text-emerald-500">${log.breakEnd || '-'}</td>
+                    <td class="py-4 px-4 font-bold text-rose-500">${log.checkOut || '-'}</td>
+                    <td class="py-4 px-4 font-mono text-gray-400 text-[10px]">${log.lat || '-'}, ${log.lng || '-'}</td>
+                    <td class="py-4 px-4 text-[10px] font-bold text-gray-500">${log.distance || '-'}</td>
+                    <td class="py-4 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                            WFO Satelit
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function applyHistoryFilter() {
+        const filterDate = document.getElementById('filter-date').value;
+        const filterSort = document.getElementById('filter-sort').value;
+        let myLogs = logs.filter(l => l.nip === currentUser.nip);
+
+        if (filterDate) {
+            myLogs = myLogs.filter(l => l.date === filterDate);
+        }
+
+        if (filterSort === 'oldest') {
+            myLogs.reverse();
+        }
+
+        renderHistoryRows(myLogs);
+    }
+
+    function resetHistoryFilter() {
+        document.getElementById('filter-date').value = '';
+        document.getElementById('filter-sort').value = 'latest';
+        applyHistoryFilter();
+    }
+
+    // 4. PROFILE & BIO EDITOR WITH CAMERA CROPPING
+    function renderProfileBioEditor(container) {
+        container.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Profile Avatar Management (Col-span-1) -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 text-center">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-6 text-left">Foto Profil Resmi</h3>
+                    
+                    <div class="relative w-36 h-36 mx-auto mb-6">
+                        <img id="profile-edit-avatar" src="${currentUser.avatar}" alt="Avatar" class="w-36 h-36 rounded-full border-4 border-mandiriBlue object-cover shadow-lg mx-auto">
+                        <div class="absolute bottom-1 right-1 flex gap-1">
+                            <label for="upload-image-input" class="p-2.5 bg-mandiriYellow hover:bg-yellow-400 text-mandiriBlue rounded-full shadow-lg cursor-pointer transition-all hover:scale-105 inline-block">
+                                <i class="fa-solid fa-camera text-sm"></i>
+                            </label>
+                            <input type="file" id="upload-image-input" accept="image/*" class="hidden" onchange="handleImageFileSelected(event)">
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">Format yang didukung: JPG, PNG, WEBP. Ukuran Maksimal berkas: 5 Megabytes.</p>
+                    
+                    <div class="space-y-2">
+                        <button onclick="triggerCameraCapture()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-camera"></i> Ambil dari Kamera Langsung
+                        </button>
+                        <button onclick="handleDeleteProfilePhoto()" class="w-full py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 text-xs font-bold rounded-xl transition-all">
+                            Hapus Foto Profil Saat Ini
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Biography & Bio Inputs (Col-span-2) -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 lg:col-span-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-6">Biografi & Kelola Data Kerja</h3>
+                    
+                    <form onsubmit="handleSaveBio(event)" class="space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nama Lengkap Resmi</label>
+                                <input type="text" value="${currentUser.name}" disabled class="w-full bg-slate-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nomor Induk Pegawai (NIP)</label>
+                                <input type="text" value="${currentUser.nip}" disabled class="w-full bg-slate-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">E-mail Korporat</label>
+                                <input type="text" value="${currentUser.email}" disabled class="w-full bg-slate-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nomor Telepon Seluler</label>
+                                <input type="text" value="${currentUser.phone}" disabled class="w-full bg-slate-100 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-100 dark:border-slate-700/50 pt-6">
+                            <h4 class="text-xs font-bold text-mandiriBlue dark:text-mandiriYellow uppercase mb-4">Edit Rincian Biodata Pegawai</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="bio-biography" class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Biografi & Latar Belakang Singkat</label>
+                                    <textarea id="bio-biography" rows="2" maxlength="500" oninput="countChar(this, 'count-biography')"
+                                              class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-mandiriBlue focus:border-mandiriBlue">${currentUser.bio.biography || ''}</textarea>
+                                    <p class="text-right text-[9px] text-gray-400 mt-1"><span id="count-biography">0</span>/500 Karakter</p>
+                                </div>
+
+                                <div>
+                                    <label for="bio-aboutme" class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Tentang Saya (Keahlian & Kejuruan)</label>
+                                    <textarea id="bio-aboutme" rows="2" maxlength="500" oninput="countChar(this, 'count-aboutme')"
+                                              class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-mandiriBlue focus:border-mandiriBlue">${currentUser.bio.aboutMe || ''}</textarea>
+                                    <p class="text-right text-[9px] text-gray-400 mt-1"><span id="count-aboutme">0</span>/500 Karakter</p>
+                                </div>
+
+                                <div>
+                                    <label for="bio-motivation" class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Motivasi & Visi Kerja</label>
+                                    <textarea id="bio-motivation" rows="2" maxlength="500" oninput="countChar(this, 'count-motivation')"
+                                              class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-mandiriBlue focus:border-mandiriBlue">${currentUser.bio.motivation || ''}</textarea>
+                                    <p class="text-right text-[9px] text-gray-400 mt-1"><span id="count-motivation">0</span>/500 Karakter</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-700/50">
+                            <button type="button" onclick="navigate('dashboard')" class="py-2.5 px-6 border border-gray-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                Batal
+                            </button>
+                            <button type="submit" class="py-2.5 px-6 bg-mandiriBlue hover:bg-mandiriDarkBlue text-white text-xs font-bold rounded-xl shadow-lg transition-all">
+                                Simpan Perubahan Biodata
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        // Initialize counters
+        setTimeout(() => {
+            countChar(document.getElementById('bio-biography'), 'count-biography');
+            countChar(document.getElementById('bio-aboutme'), 'count-aboutme');
+            countChar(document.getElementById('bio-motivation'), 'count-motivation');
+        }, 100);
+    }
+
+    function countChar(el, displayId) {
+        if (!el) return;
+        document.getElementById(displayId).innerText = el.value.length;
+    }
+
+    // Trigger image cropper modal sandbox
+    function handleImageFileSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            Swal.fire("Ukuran Berkas Terlalu Besar", "Batas maksimal unggahan foto adalah 5 Megabytes.", "error");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            openCropperModal(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function openCropperModal(imageSrc) {
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-lg w-full border border-gray-100 dark:border-slate-700 mx-4">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Potong & Atur Posisi Foto</h3>
+                <div class="h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden mb-6 flex items-center justify-center">
+                    <img id="cropper-target-img" src="${imageSrc}" class="max-h-full max-w-full">
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeModal()" class="py-2 px-4 border border-gray-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-gray-500">Batal</button>
+                    <button onclick="applyCroppedImage()" class="py-2 px-5 bg-mandiriBlue text-white hover:bg-mandiriDarkBlue text-xs font-bold rounded-xl shadow">Potong & Simpan</button>
+                </div>
+            </div>
+        `;
+
+        // Initialize CropperJS on target image
+        setTimeout(() => {
+            const image = document.getElementById('cropper-target-img');
+            cropperInstance = new Cropper(image, {
+                aspectRatio: 1,
+                viewMode: 1,
+                background: false
+            });
+        }, 100);
+    }
+
+    function applyCroppedImage() {
+        if (!cropperInstance) return;
+
+        const canvas = cropperInstance.getCroppedCanvas({
+            width: 300,
+            height: 300
+        });
+
+        const base64Img = canvas.toDataURL('image/png');
+
+        // Apply changes to state
+        currentUser.avatar = base64Img;
+        
+        // Update sidebar and local variables
+        const idx = employees.findIndex(e => e.nip === currentUser.nip);
+        if (idx !== -1) {
+            employees[idx].avatar = base64Img;
+            localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+        }
+
+        // Update UI displays on current screen
+        document.getElementById('sidebar-avatar').src = base64Img;
+        const editAvatar = document.getElementById('profile-edit-avatar');
+        if (editAvatar) editAvatar.src = base64Img;
+
+        closeModal();
+        showNotification("Foto profil resmi Anda berhasil diperbarui!", "success");
+    }
+
+    // Delete photo trigger
+    function handleDeleteProfilePhoto() {
+        Swal.fire({
+            title: 'Hapus Foto Profil?',
+            text: 'Apakah Anda yakin ingin menghapus foto profil resmi dan kembali menggunakan avatar default?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#003D79',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const placeholder = `https://placehold.co/150x150/003D79/FFFFFF?text=${encodeURIComponent(currentUser.name.charAt(0))}`;
+                currentUser.avatar = placeholder;
+
+                const idx = employees.findIndex(e => e.nip === currentUser.nip);
+                if (idx !== -1) {
+                    employees[idx].avatar = placeholder;
+                    localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+                }
+
+                document.getElementById('sidebar-avatar').src = placeholder;
+                const editAvatar = document.getElementById('profile-edit-avatar');
+                if (editAvatar) editAvatar.src = placeholder;
+
+                showNotification("Foto profil berhasil dihapus.", "info");
+            }
+        });
+    }
+
+    // Capture Directly from Webcam simulation (Fully HTML5 functional)
+    function triggerCameraCapture() {
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-md w-full border border-gray-100 dark:border-slate-700 mx-4">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Ambil Foto dengan Kamera</h3>
+                <div class="bg-slate-900 rounded-2xl h-64 overflow-hidden mb-6 relative">
+                    <video id="webcam-stream" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <canvas id="webcam-canvas" class="hidden"></canvas>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-gray-400">Pastikan pencahayaan wajah memadai</span>
+                    <div class="flex gap-2">
+                        <button onclick="stopWebcamStream(); closeModal()" class="py-2 px-4 border border-gray-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-gray-500">Batal</button>
+                        <button onclick="captureWebcamPhoto()" class="py-2 px-5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow">Ambil Gambar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Start HTML5 Media stream
+        setTimeout(() => {
+            const video = document.getElementById('webcam-stream');
+            navigator.mediaDevices.getUserMedia({ video: { width: 300, height: 300, facingMode: 'user' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    window.webcamStreamInstance = stream;
+                })
+                .catch(err => {
+                    Swal.fire("Kamera Tidak Terdeteksi", "Sistem tidak dapat mengakses kamera perangkat. Harap izinkan akses kamera.", "error");
+                    closeModal();
+                });
+        }, 100);
+    }
+
+    function stopWebcamStream() {
+        if (window.webcamStreamInstance) {
+            window.webcamStreamInstance.getTracks().forEach(track => track.stop());
+            window.webcamStreamInstance = null;
+        }
+    }
+
+    function captureWebcamPhoto() {
+        const video = document.getElementById('webcam-stream');
+        const canvas = document.getElementById('webcam-canvas');
+        if (!video || !canvas) return;
+
+        const context = canvas.getContext('2d');
+        canvas.width = 300;
+        canvas.height = 300;
+
+        // Draw video frame directly into hidden canvas
+        context.drawImage(video, 0, 0, 300, 300);
+        const dataUrl = canvas.toDataURL('image/png');
+
+        stopWebcamStream();
+        closeModal();
+
+        // Pass taken picture straight into Cropper editor Modal
+        setTimeout(() => {
+            openCropperModal(dataUrl);
+        }, 150);
+    }
+
+    // Save bio settings trigger
+    function handleSaveBio(e) {
+        e.preventDefault();
+        
+        currentUser.bio.biography = document.getElementById('bio-biography').value.trim();
+        currentUser.bio.aboutMe = document.getElementById('bio-aboutme').value.trim();
+        currentUser.bio.motivation = document.getElementById('bio-motivation').value.trim();
+
+        // Update main state array
+        const idx = employees.findIndex(e => e.nip === currentUser.nip);
+        if (idx !== -1) {
+            employees[idx].bio = currentUser.bio;
+            localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+        }
+
+        showNotification("Pengaturan Biografi dan Visi Kerja tersimpan!", "success");
+        navigate('dashboard');
+    }
+
+    // 5. ACHIEVEMENTS & LEADERBOARDS
+    function renderAchievementsView(container) {
+        // Build employee leaderboard sorted by Points
+        const ranked = [...employees].sort((a, b) => b.points - a.points);
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Section: Levels & Point metrics -->
+                <div class="bg-gradient-to-br from-[#003D79] to-[#001D3A] text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-bold uppercase text-mandiriYellow">Gamifikasi Kinerja</span>
+                        <h3 class="text-xl font-bold mt-2">Level Akumulasi Sesi</h3>
+                        <p class="text-xs text-gray-300 leading-relaxed mt-2">Kumpulkan poin tambahan presensi harian untuk menaikkan tingkatan lencana (Badge) karir digital Anda.</p>
+
+                        <div class="mt-8 text-center py-6 border-y border-white/10">
+                            <i class="fa-solid fa-trophy text-5xl text-mandiriYellow drop-shadow-lg mb-3"></i>
+                            <h4 class="text-2xl font-black text-mandiriYellow uppercase">${currentUser.level}</h4>
+                            <p class="text-xs text-gray-300 mt-1">Akumulasi Kredit: <strong>${currentUser.points} Poin</strong></p>
+                        </div>
+
+                        <!-- Progress to next level indicator -->
+                        <div class="mt-6">
+                            <div class="flex justify-between text-xs font-bold text-gray-300 mb-2">
+                                <span>Kemajuan Level Diamond</span>
+                                <span>${currentUser.points}/1500 Pts</span>
+                            </div>
+                            <div class="w-full bg-white/10 rounded-full h-2">
+                                <div class="bg-mandiriYellow h-2 rounded-full" style="width: ${(currentUser.points / 1500) * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-4 bg-white/5 rounded-2xl text-xs text-gray-300 border border-white/10">
+                        <p class="font-bold text-mandiriYellow"><i class="fa-solid fa-circle-info mr-1.5"></i> Mekanisme Kredit:</p>
+                        <ul class="list-disc pl-4 mt-2 space-y-1">
+                            <li>Check In valid: +20 Poin</li>
+                            <li>Check Out valid: +20 Poin</li>
+                            <li>Tepat Waktu penuh seminggu: +100 Poin</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Leaderboard & Rankings panel (Col-span-2) -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 lg:col-span-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-6">Papan Peringkat Kinerja Pegawai (Bulanan)</h3>
+                    
+                    <div class="space-y-4" id="leaderboard-list">
+                        <!-- Rankings built dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Section: Achievements unlocked badges -->
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 mt-6">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-6">Lencana & Medali Pencapaian Mandiri</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    ${achievementDefinitions.map(ach => `
+                        <div class="p-5 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-gray-100 dark:border-slate-700/50 flex flex-col justify-between items-start">
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-900 shadow-sm mb-4">
+                                <i class="fa-solid ${ach.icon} text-2xl ${ach.color}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-extrabold text-xs text-gray-900 dark:text-white">${ach.title}</h4>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">${ach.desc}</p>
+                            </div>
+                            <span class="mt-4 text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-1 rounded-full">+${ach.pts} Poin</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        const leadContainer = document.getElementById('leaderboard-list');
+        leadContainer.innerHTML = '';
+        
+        ranked.forEach((emp, i) => {
+            let placeBadge = `<span class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 flex items-center justify-center font-bold text-xs">${i + 1}</span>`;
+            if (i === 0) placeBadge = `<span class="w-6 h-6 rounded-full bg-yellow-400 text-gray-900 flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-crown text-[10px]"></i></span>`;
+            if (i === 1) placeBadge = `<span class="w-6 h-6 rounded-full bg-slate-300 text-gray-900 flex items-center justify-center font-bold text-xs">2</span>`;
+            if (i === 2) placeBadge = `<span class="w-6 h-6 rounded-full bg-orange-300 text-gray-900 flex items-center justify-center font-bold text-xs">3</span>`;
+
+            const isMe = emp.nip === currentUser.nip;
+
+            leadContainer.innerHTML += `
+                <div class="p-4 ${isMe ? 'bg-gradient-to-r from-mandiriBlue/5 to-transparent border-l-4 border-mandiriBlue' : 'bg-slate-50/50 dark:bg-slate-700/10'} rounded-2xl flex items-center justify-between border border-gray-100/50 dark:border-slate-700">
+                    <div class="flex items-center gap-4">
+                        ${placeBadge}
+                        <img src="${emp.avatar}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <h4 class="font-bold text-xs ${isMe ? 'text-mandiriBlue dark:text-mandiriYellow font-extrabold' : 'text-gray-900 dark:text-white'}">${emp.name} ${isMe ? '(Anda)' : ''}</h4>
+                            <p class="text-[10px] text-gray-400 font-semibold uppercase">${emp.position}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        <p class="text-xs font-black text-gray-800 dark:text-gray-200">${emp.points} Pts</p>
+                        <span class="text-[9px] uppercase font-bold text-gray-400">${emp.level}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // 6. ADMINISTRATOR VIEWPORT: PRINCIPAL DASHBOARD
+    function renderAdminDashboard(container) {
+        // Sum parameters
+        const totalEmployeesCount = employees.length;
+        const activeTodayCount = logs.filter(l => l.date === "2026-07-06").length;
+
+        container.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- Stat Card 1 -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-700/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-extrabold">Total Pegawai Terdaftar</p>
+                        <p class="text-3xl font-black text-mandiriBlue dark:text-white mt-1">${totalEmployeesCount}</p>
+                    </div>
+                    <div class="p-4 bg-blue-50 dark:bg-slate-950 rounded-2xl text-mandiriBlue">
+                        <i class="fa-solid fa-users text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- Stat Card 2 -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-700/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-extrabold">Hadir Hari Ini</p>
+                        <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">${activeTodayCount}</p>
+                    </div>
+                    <div class="p-4 bg-emerald-50 dark:bg-slate-950 rounded-2xl text-emerald-600">
+                        <i class="fa-solid fa-user-check text-2xl"></i>
+                    </div>
+                </div>
+
+                <!-- Stat Card 3 -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-700/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-extrabold">Rasio Kehadiran Kantor</p>
+                        <p class="text-3xl font-black text-mandiriBlue dark:text-mandiriYellow mt-1">${Math.round((activeTodayCount / totalEmployeesCount) * 100)}%</p>
+                    </div>
+                    <div class="p-4 bg-amber-50 dark:bg-slate-950 rounded-2xl text-mandiriYellow">
+                        <i class="fa-solid fa-circle-notch text-2xl animate-spin"></i>
+                    </div>
+                </div>
+
+                <!-- Stat Card 4 -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-700/80 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase font-extrabold">Aduan / Masalah Teknis</p>
+                        <p class="text-3xl font-black text-rose-500 mt-1">0</p>
+                    </div>
+                    <div class="p-4 bg-rose-50 dark:bg-slate-950 rounded-2xl text-rose-500">
+                        <i class="fa-solid fa-circle-exclamation text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Chart and Employee Health panel -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Circular Chart metrics -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 lg:col-span-2">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-6">Tren Produktivitas Kehadiran Divisi</h3>
+                    <div class="h-80 flex items-center justify-center relative">
+                        <!-- Chart container -->
+                        <canvas id="admin-performance-chart" class="w-full max-h-full"></canvas>
+                    </div>
+                </div>
+
+                <!-- Log Sesi Audit List -->
+                <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80">
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-6">Log Keamanan Sesi Absensi</h3>
+                    <div class="space-y-4 max-h-80 overflow-y-auto pr-2" id="admin-audit-rows">
+                        <!-- Dynamic generated -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Render chart using Chart.js
+        setTimeout(() => {
+            const ctx = document.getElementById('admin-performance-chart').getContext('2d');
+            const performanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Persentase Kedisiplinan (%)',
+                        data: [94, 95, 93, 96, 97, 95, 98],
+                        backgroundColor: '#003D79',
+                        borderRadius: 8
+                    }, {
+                        label: 'Persentase Kehadiran (%)',
+                        data: [91, 92, 90, 94, 95, 93, 96],
+                        backgroundColor: '#F9C400',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { min: 80, max: 100 }
+                    }
+                }
+            });
+
+            // Generate logs audit
+            const aud = document.getElementById('admin-audit-rows');
+            aud.innerHTML = '';
+            
+            const auditLogs = [
+                { ip: "10.12.33.155", user: "Suryo Utomo", msg: "Absen Masuk GPS Valid (Radius: 21m)", time: "07:32:15 WIB" },
+                { ip: "10.12.33.156", user: "Nabila Putrie", msg: "Absen Masuk GPS Valid (Radius: 45m)", time: "07:44:02 WIB" },
+                { ip: "10.12.33.157", user: "Galang Guytama", msg: "Absen Masuk GPS Valid (Radius: 65m)", time: "07:55:40 WIB" },
+                { ip: "10.12.33.158", user: "Anindya Kirana", msg: "Absen Masuk GPS Valid (Radius: 12m)", time: "08:05:12 WIB" },
+                { ip: "10.12.33.159", user: "Raditya Pamungkas", msg: "Absen Masuk GPS Valid (Radius: 8m)", time: "08:15:55 WIB" },
+            ];
+
+            auditLogs.forEach(lg => {
+                aud.innerHTML += `
+                    <div class="p-3 bg-slate-50 dark:bg-slate-700/20 rounded-2xl border border-gray-100/50 dark:border-slate-700/50 text-xs">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-gray-900 dark:text-white">${lg.user}</span>
+                            <span class="text-[9px] font-mono text-gray-400">${lg.time}</span>
+                        </div>
+                        <p class="text-slate-600 dark:text-gray-300 text-[11px]">${lg.msg}</p>
+                        <p class="text-[9px] text-gray-400 mt-1 font-mono">Terminal IP: ${lg.ip}</p>
+                    </div>
+                `;
+            });
+        }, 100);
+    }
+
+    // 7. ADMINISTRATOR VIEWPORT: MANAGE EMPLOYEES
+    function renderAdminEmployees(container) {
+        container.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 mb-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Direktori Database Pegawai Mandiri</h3>
+                    <button onclick="openAddEmployeeModal()" class="py-2.5 px-5 bg-mandiriYellow hover:bg-yellow-400 text-mandiriBlue text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-user-plus"></i> Tambah Pegawai Baru
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-700/30 text-left text-gray-400 uppercase font-bold tracking-wider">
+                                <th class="py-3 px-4">Pegawai</th>
+                                <th class="py-3 px-4">NIP</th>
+                                <th class="py-3 px-4">Posisi Jabatan</th>
+                                <th class="py-3 px-4">Lokasi Penempatan</th>
+                                <th class="py-3 px-4">Status Akun</th>
+                                <th class="py-3 px-4">Kredit Poin</th>
+                                <th class="py-3 px-4 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-employees-rows" class="divide-y divide-gray-100 dark:divide-slate-700 text-gray-700 dark:text-gray-300">
+                            <!-- Populated in JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        renderAdminEmployeesRows();
+    }
+
+    function renderAdminEmployeesRows() {
+        const body = document.getElementById('admin-employees-rows');
+        if (!body) return;
+        body.innerHTML = '';
+
+        employees.forEach(emp => {
+            body.innerHTML += `
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/10">
+                    <td class="py-4 px-4 flex items-center gap-3">
+                        <img src="${emp.avatar}" alt="Avatar" class="w-9 h-9 rounded-full object-cover">
+                        <div>
+                            <p class="font-bold text-gray-900 dark:text-white text-xs">${emp.name}</p>
+                            <p class="text-[10px] text-gray-400 truncate">${emp.email}</p>
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 font-mono font-bold text-slate-700 dark:text-gray-300">${emp.nip}</td>
+                    <td class="py-4 px-4 font-medium text-xs text-gray-600 dark:text-gray-300">${emp.position}</td>
+                    <td class="py-4 px-4 text-gray-500 text-[11px]">${emp.branch}</td>
+                    <td class="py-4 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${emp.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                            ${emp.status}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4 font-black font-mono text-slate-900 dark:text-white">${emp.points}</td>
+                    <td class="py-4 px-4 text-right">
+                        <div class="inline-flex gap-1.5">
+                            <button onclick="openEditEmployeeModal('${emp.nip}')" class="p-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-gray-300 rounded hover:text-mandiriBlue" title="Edit Data Pegawai">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="toggleEmployeeStatus('${emp.nip}')" class="p-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-gray-300 rounded hover:text-rose-600" title="Ubah Status">
+                                <i class="fa-solid fa-power-off"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Modal adding new Employee profile
+    function openAddEmployeeModal() {
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-lg w-full border border-gray-100 dark:border-slate-700 mx-4">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-6">Tambah Pegawai Baru</h3>
+                
+                <form onsubmit="handleAddNewEmployee(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nama Lengkap Resmi</label>
+                            <input type="text" id="new-name" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">NIP (12 Digit)</label>
+                            <input type="text" id="new-nip" required maxlength="12" class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Posisi Jabatan</label>
+                            <input type="text" id="new-position" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">E-mail</label>
+                            <input type="email" id="new-email" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Telepon Seluler</label>
+                            <input type="text" id="new-phone" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Penempatan Kantor Cabang</label>
+                            <input type="text" id="new-branch" required value="Kantor Pusat Plaza Mandiri, Jakarta" class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <button type="button" onclick="closeModal()" class="py-2 px-4 border border-gray-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-gray-500">Batal</button>
+                        <button type="submit" class="py-2 px-5 bg-mandiriYellow text-mandiriBlue hover:bg-yellow-400 text-xs font-bold rounded-xl shadow">Daftarkan Pegawai</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    }
+
+    function handleAddNewEmployee(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('new-name').value.trim();
+        const nip = document.getElementById('new-nip').value.trim();
+        const position = document.getElementById('new-position').value.trim();
+        const email = document.getElementById('new-email').value.trim();
+        const phone = document.getElementById('new-phone').value.trim();
+        const branch = document.getElementById('new-branch').value.trim();
+
+        // Check if NIP is already registered
+        const exist = employees.some(emp => emp.nip === nip);
+        if (exist) {
+            Swal.fire("Pendaftaran Gagal", "Nomor Induk Pegawai (NIP) tersebut sudah terdaftar dalam sistem.", "error");
+            return;
+        }
+
+        const newEmp = {
+            nip, name, position, branch, email, phone,
+            status: "Aktif",
+            points: 100,
+            level: "Bronze",
+            avatar: `https://placehold.co/150x150/003D79/FFFFFF?text=${encodeURIComponent(name.charAt(0))}`,
+            bio: {
+                biography: "Latar belakang pegawai baru terdaftar di Bank Mandiri.",
+                aboutMe: "Tentang saya pegawai baru.",
+                motivation: "Mari bekerja dengan integritas.",
+                workNotes: ""
+            },
+            performance: { attendance: 100, discipline: 100, punctuality: 100, target: 90, overall: 96 }
+        };
+
+        employees.push(newEmp);
+        localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+
+        closeModal();
+        renderAdminEmployeesRows();
+        showNotification(`Pegawai ${name} berhasil didaftarkan!`, "success");
+    }
+
+    // Edit Employee profile modal
+    function openEditEmployeeModal(nip) {
+        const emp = employees.find(e => e.nip === nip);
+        if (!emp) return;
+
+        const modal = document.getElementById('modal-container');
+        modal.classList.remove('hidden');
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-lg w-full border border-gray-100 dark:border-slate-700 mx-4">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-6">Ubah Profil Pegawai</h3>
+                
+                <form onsubmit="handleUpdateEmployee(event, '${nip}')" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Nama Lengkap Resmi</label>
+                            <input type="text" id="edit-name" value="${emp.name}" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">NIP (Tidak dapat diubah)</label>
+                            <input type="text" value="${emp.nip}" disabled class="w-full bg-slate-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-mono text-gray-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Posisi Jabatan</label>
+                            <input type="text" id="edit-position" value="${emp.position}" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">E-mail</label>
+                            <input type="email" id="edit-email" value="${emp.email}" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Telepon Seluler</label>
+                            <input type="text" id="edit-phone" value="${emp.phone}" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-extrabold text-gray-400 uppercase mb-1">Penempatan Kantor Cabang</label>
+                            <input type="text" id="edit-branch" value="${emp.branch}" required class="w-full bg-slate-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <button type="button" onclick="closeModal()" class="py-2 px-4 border border-gray-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-gray-500">Batal</button>
+                        <button type="submit" class="py-2 px-5 bg-mandiriBlue text-white hover:bg-mandiriDarkBlue text-xs font-bold rounded-xl shadow">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    }
+
+    function handleUpdateEmployee(e, nip) {
+        e.preventDefault();
+        const idx = employees.findIndex(em => em.nip === nip);
+        if (idx === -1) return;
+
+        employees[idx].name = document.getElementById('edit-name').value.trim();
+        employees[idx].position = document.getElementById('edit-position').value.trim();
+        employees[idx].email = document.getElementById('edit-email').value.trim();
+        employees[idx].phone = document.getElementById('edit-phone').value.trim();
+        employees[idx].branch = document.getElementById('edit-branch').value.trim();
+
+        localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+        closeModal();
+        renderAdminEmployeesRows();
+        showNotification("Data profil pegawai berhasil diperbarui.", "success");
+    }
+
+    function toggleEmployeeStatus(nip) {
+        const idx = employees.findIndex(e => e.nip === nip);
+        if (idx === -1) return;
+
+        const current = employees[idx].status;
+        const target = current === 'Aktif' ? 'Ditangguhkan' : 'Aktif';
+
+        Swal.fire({
+            title: `Ubah Status Pegawai?`,
+            text: `Apakah Anda yakin ingin mengubah status akun pegawai ${employees[idx].name} menjadi ${target}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#003D79',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Ubah',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                employees[idx].status = target;
+                localStorage.setItem('mandiri_employees', JSON.stringify(employees));
+                renderAdminEmployeesRows();
+                showNotification(`Status akun berhasil diubah menjadi ${target}.`, "info");
+            }
+        });
+    }
+
+    // 8. ADMINISTRATOR VIEWPORT: REPORTS CONSOLIDATION
+    function renderAdminReports(container) {
+        container.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 mb-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                    <h3 class="font-bold text-gray-900 dark:text-white">Daftar Konsolidasi Log Absensi Seluruh Pegawai</h3>
+                    <div class="flex gap-2">
+                        <button onclick="exportAllToPDF()" class="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-pdf"></i> Ekspor Semua PDF
+                        </button>
+                        <button onclick="exportAllToExcel()" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Ekspor Semua Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Searching / Filter panel -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-700/20 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Pencarian Nama / NIP</label>
+                        <input type="text" id="admin-report-search" placeholder="Masukkan Nama atau NIP..." oninput="applyAdminReportFilter()" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Pilih Tanggal Log</label>
+                        <input type="date" id="admin-report-date" onchange="applyAdminReportFilter()" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="resetAdminReportFilter()" class="w-full py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-gray-300 text-xs font-bold rounded-xl transition-all">
+                            Reset Saring
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Consolidated Reports Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 dark:bg-slate-700/30 text-left text-gray-400 uppercase font-bold tracking-wider">
+                                <th class="py-3 px-4">Pegawai</th>
+                                <th class="py-3 px-4">NIP</th>
+                                <th class="py-3 px-4">Tanggal Kerja</th>
+                                <th class="py-3 px-4">Check In</th>
+                                <th class="py-3 px-4">Istirahat</th>
+                                <th class="py-3 px-4">Kembali</th>
+                                <th class="py-3 px-4">Check Out</th>
+                                <th class="py-3 px-4">Jarak Office</th>
+                                <th class="py-3 px-4">Status Absen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-reports-rows" class="divide-y divide-gray-100 dark:divide-slate-700 text-gray-700 dark:text-gray-300">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        renderAdminReportsRows(logs);
+    }
+
+    function renderAdminReportsRows(logsArray) {
+        const body = document.getElementById('admin-reports-rows');
+        if (!body) return;
+        body.innerHTML = '';
+
+        if (logsArray.length === 0) {
+            body.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-gray-400 italic">Tidak ditemukan log absensi pegawai yang cocok.</td></tr>`;
+            return;
+        }
+
+        logsArray.forEach(log => {
+            const emp = employees.find(e => e.nip === log.nip) || { name: "Pegawai Tidak Terdaftar", avatar: "https://placehold.co/150x150/003D79/FFFFFF?text=BM" };
+
+            body.innerHTML += `
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/10">
+                    <td class="py-4 px-4 flex items-center gap-3">
+                        <img src="${emp.avatar}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+                        <span class="font-bold text-gray-900 dark:text-white">${emp.name}</span>
+                    </td>
+                    <td class="py-4 px-4 font-mono font-bold text-slate-700 dark:text-gray-300">${log.nip}</td>
+                    <td class="py-4 px-4 font-bold font-mono">${formatDateIndo(log.date)}</td>
+                    <td class="py-4 px-4 font-bold text-emerald-600">${log.checkIn || '-'}</td>
+                    <td class="py-4 px-4 text-amber-500">${log.breakStart || '-'}</td>
+                    <td class="py-4 px-4 text-emerald-500">${log.breakEnd || '-'}</td>
+                    <td class="py-4 px-4 font-bold text-rose-500">${log.checkOut || '-'}</td>
+                    <td class="py-4 px-4 text-[10px] font-bold text-gray-500">${log.distance || '-'}</td>
+                    <td class="py-4 px-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
+                            ${log.status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function applyAdminReportFilter() {
+        const search = document.getElementById('admin-report-search').value.toLowerCase();
+        const dateVal = document.getElementById('admin-report-date').value;
+
+        let filtered = [...logs];
+
+        if (search) {
+            filtered = filtered.filter(log => {
+                const emp = employees.find(e => e.nip === log.nip);
+                const nameMatch = emp ? emp.name.toLowerCase().includes(search) : false;
+                const nipMatch = log.nip.includes(search);
+                return nameMatch || nipMatch;
+            });
+        }
+
+        if (dateVal) {
+            filtered = filtered.filter(log => log.date === dateVal);
+        }
+
+        renderAdminReportsRows(filtered);
+    }
+
+    function resetAdminReportFilter() {
+        document.getElementById('admin-report-search').value = '';
+        document.getElementById('admin-report-date').value = '';
+        renderAdminReportsRows(logs);
+    }
+</script>
+
+<script>
+    // 9. DEVELOPER SANDBOX: DOWNLOAD CODEBASE FILES DIRECTLY
+    function renderDeveloperAssets(container) {
+        container.innerHTML = `
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-slate-700/80 mb-6">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-2">Pusat Integrasi Codebase PHP 8 & Database SQL</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Sebagai bagian dari rincian deliverables, di bawah ini merupakan folder terstruktur serta skrip server siap-pakai guna mengintegrasikannya dengan infrastruktur hosting korporat PT Bank Mandiri.</p>
+
+                <!-- Folder Structure Overview Tree Visualizer -->
+                <div class="p-5 bg-slate-900 text-teal-400 font-mono text-xs rounded-2xl mb-6 shadow-inner leading-relaxed">
+                    <p class="text-gray-400 mb-2">// Struktur Direktori Folder Aplikasi PHP/MySQL</p>
+                    <p class="text-white">📂 mandiri_attendance/</p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;📂 config/</p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">database.php</span> <span class="text-gray-500">(Koneksi PDO MySQL)</span></p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;📂 api/</p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">auth.php</span> <span class="text-gray-500">(Otentikasi Pegawai & Administrator)</span></p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">attendance.php</span> <span class="text-gray-500">(Input koordinat Absensi GPS)</span></p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">profile.php</span> <span class="text-gray-500">(Unggah foto Base64 & update Bio)</span></p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;📂 database/</p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">mandiri_attendance.sql</span> <span class="text-gray-500">(Database Schema)</span></p>
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp;📄 <span class="text-yellow-400">index.php</span> <span class="text-gray-500">(Frontend SPA layout)</span></p>
+                </div>
+
+                <!-- Accordion of Copyable Code Blocks -->
+                <div class="space-y-4">
+                    <!-- DB Structure SQL Accordion -->
+                    <div class="border border-gray-100 dark:border-slate-700 rounded-2xl overflow-hidden">
+                        <button onclick="toggleAccordion('acc-sql')" class="w-full flex justify-between items-center bg-slate-50 dark:bg-slate-700/40 p-4 font-bold text-xs text-gray-900 dark:text-white">
+                            <span><i class="fa-solid fa-database mr-2 text-mandiriBlue dark:text-mandiriYellow"></i> 1. Skema Database MySQL (mandiri_attendance.sql)</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div id="acc-sql" class="hidden p-4 bg-slate-950 text-slate-300 font-mono text-[11px] overflow-x-auto max-h-80">
+                            <button onclick="copyCodeBlock('code-sql')" class="mb-3 py-1 px-3 bg-white/10 hover:bg-white/20 text-white rounded text-[10px]">Salin Kode</button>
+                            <pre id="code-sql">
+-- CREATE DATABASE FOR BANK MANDIRI ATTENDANCE SYSTEM
+CREATE DATABASE IF NOT EXISTS mandiri_attendance;
+USE mandiri_attendance;
+
+-- TABLE EMPLOYEES
+CREATE TABLE IF NOT EXISTS employees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nip VARCHAR(12) UNIQUE NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    position VARCHAR(100) NOT NULL,
+    branch VARCHAR(150) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    status ENUM('Aktif', 'Ditangguhkan') DEFAULT 'Aktif',
+    points INT DEFAULT 100,
+    level VARCHAR(20) DEFAULT 'Bronze',
+    avatar LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- TABLE ATTENDANCE
+CREATE TABLE IF NOT EXISTS attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employee_nip VARCHAR(12) NOT NULL,
+    work_date DATE NOT NULL,
+    check_in TIME DEFAULT NULL,
+    break_start TIME DEFAULT NULL,
+    break_end TIME DEFAULT NULL,
+    check_out TIME DEFAULT NULL,
+    latitude VARCHAR(30) NOT NULL,
+    longitude VARCHAR(30) NOT NULL,
+    address TEXT,
+    distance_from_office VARCHAR(10) NOT NULL,
+    status VARCHAR(50) DEFAULT 'Valid (WFO)',
+    FOREIGN KEY (employee_nip) REFERENCES employees(nip) ON DELETE CASCADE,
+    UNIQUE KEY uq_nip_date (employee_nip, work_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- TABLE EMPLOYEE_BIO
+CREATE TABLE IF NOT EXISTS employee_bio (
+    nip VARCHAR(12) PRIMARY KEY,
+    biography VARCHAR(500),
+    about_me VARCHAR(500),
+    motivation VARCHAR(500),
+    work_notes VARCHAR(500),
+    FOREIGN KEY (nip) REFERENCES employees(nip) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- SEED DATA MANDIRI EMPLOYEES
+INSERT INTO employees (nip, name, position, branch, email, phone, status, points, level)
+VALUES 
+('251011401559', 'Suryo Utomo', 'Senior Relationship Manager', 'Kantor Pusat Plaza Mandiri, Jakarta', 'suryo.utomo@bankmandiri.co.id', '+62 821-2345-6789', 'Aktif', 1250, 'Diamond'),
+('251011401560', 'Nabila Putrie', 'Corporate Legal Counsel', 'Kantor Wilayah III Jakarta Kota', 'nabila.putrie@bankmandiri.co.id', '+62 812-9876-5432', 'Aktif', 950, 'Platinum'),
+('251011401561', 'Galang Guytama', 'Lead Database Administrator', 'Sentra TI Plasa Bapindo, Jakarta', 'galang.guytama@bankmandiri.co.id', '+62 856-4321-0987', 'Aktif', 780, 'Gold');
+                            </pre>
+                        </div>
+                    </div>
+
+                    <!-- Database connection configuration -->
+                    <div class="border border-gray-100 dark:border-slate-700 rounded-2xl overflow-hidden">
+                        <button onclick="toggleAccordion('acc-conn')" class="w-full flex justify-between items-center bg-slate-50 dark:bg-slate-700/40 p-4 font-bold text-xs text-gray-900 dark:text-white">
+                            <span><i class="fa-solid fa-code mr-2 text-mandiriBlue dark:text-mandiriYellow"></i> 2. PHP Database Connection (database.php)</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div id="acc-conn" class="hidden p-4 bg-slate-950 text-slate-300 font-mono text-[11px] overflow-x-auto max-h-80">
+                            <button onclick="copyCodeBlock('code-conn')" class="mb-3 py-1 px-3 bg-white/10 hover:bg-white/20 text-white rounded text-[10px]">Salin Kode</button>
+                            <pre id="code-conn">
+&lt;?php
+// config/database.php
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+
+class Database {
+    private $host = "localhost";
+    private $db_name = "mandiri_attendance";
+    private $username = "root";
+    private $password = "";
+    public $conn;
+
+    public function getConnection() {
+        $this->conn = null;
+        try {
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
+                $this->username,
+                $this->password
+            );
+            $this->conn->exec("set names utf8mb4");
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $exception) {
+            echo json_encode(["status" => "error", "message" => "Database connection error: " . $exception->getMessage()]);
+            exit;
+        }
+        return $this->conn;
+    }
+}
+?&gt;
+                            </pre>
+                        </div>
+                    </div>
+
+                    <!-- Backend Auth logic php -->
+                    <div class="border border-gray-100 dark:border-slate-700 rounded-2xl overflow-hidden">
+                        <button onclick="toggleAccordion('acc-auth')" class="w-full flex justify-between items-center bg-slate-50 dark:bg-slate-700/40 p-4 font-bold text-xs text-gray-900 dark:text-white">
+                            <span><i class="fa-solid fa-shield-halved mr-2 text-mandiriBlue dark:text-mandiriYellow"></i> 3. API Authentication Controller (auth.php)</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div id="acc-auth" class="hidden p-4 bg-slate-950 text-slate-300 font-mono text-[11px] overflow-x-auto max-h-80">
+                            <button onclick="copyCodeBlock('code-auth')" class="mb-3 py-1 px-3 bg-white/10 hover:bg-white/20 text-white rounded text-[10px]">Salin Kode</button>
+                            <pre id="code-auth">
+&lt;?php
+// api/auth.php
+require_once "../config/database.php";
+
+$database = new Database();
+$db = $database->getConnection();
+
+$data = json_decode(file_get_contents("php://input"));
+
+if (!empty($data->nip)) {
+    $query = "SELECT * FROM employees WHERE nip = :nip LIMIT 1";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(":nip", $data->nip);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($employee['status'] === 'Ditangguhkan') {
+            http_response_code(403);
+            echo json_encode(["status" => "error", "message" => "Akun Anda ditangguhkan oleh Administrator."]);
+        } else {
+            // Get Employee Bio data as well
+            $bioQuery = "SELECT * FROM employee_bio WHERE nip = :nip LIMIT 1";
+            $bioStmt = $db->prepare($bioQuery);
+            $bioStmt->bindParam(":nip", $data->nip);
+            $bioStmt->execute();
+            $bio = $bioStmt->fetch(PDO::FETCH_ASSOC) ?: [
+                "biography" => "", "about_me" => "", "motivation" => "", "work_notes" => ""
+            ];
+            
+            $employee['bio'] = $bio;
+            http_response_code(200);
+            echo json_encode([
+                "status" => "success", 
+                "message" => "Login Berhasil.", 
+                "employee" => $employee
+            ]);
+        }
+    } else {
+        http_response_code(404);
+        echo json_encode(["status" => "error", "message" => "Tidak dapat menemukan Nomor Induk Pegawai."]);
+    }
+} else {
+    http_response_code(400);
+    echo json_encode(["status" => "error", "message" => "Akses Ditolak. Parameter NIP dibutuhkan."]);
+}
+?&gt;
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function toggleAccordion(id) {
+        const target = document.getElementById(id);
+        target.classList.toggle('hidden');
+    }
+
+    function copyCodeBlock(id) {
+        const text = document.getElementById(id).innerText;
+        // Native clean clipboard copy simulation
+        const el = document.createElement('textarea');
+        el.value = text;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+
+        showNotification("Kode disalin ke Clipboard!", "success");
+    }
+</script>
+
+<script>
+    // Global Helper functions
+    function formatDateIndo(dateStr) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        return `${parts[2]} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+    }
+
+    function showNotification(msg, icon) {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        Toast.fire({
+            icon: icon,
+            title: msg
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('modal-container').classList.add('hidden');
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    }
+
+    // EXPORT PERSONAL ATTENDANCE LOGS TO EXCEL (SheetJS)
+    function exportToExcel() {
+        const myLogs = logs.filter(l => l.nip === currentUser.nip);
+        const dataPrepared = myLogs.map(log => ({
+            "Tanggal": formatDateIndo(log.date),
+            "Absen Masuk": log.checkIn || '-',
+            "Mulai Istirahat": log.breakStart || '-',
+            "Selesai Istirahat": log.breakEnd || '-',
+            "Absen Pulang": log.checkOut || '-',
+            "Jarak Dari Plaza Mandiri": log.distance || '-',
+            "Koordinat GPS": `${log.lat}, ${log.lng}`,
+            "Alamat Lokasi": log.address,
+            "Validitas Presensi": log.status
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dataPrepared);
+        XLSX.utils.book_append_sheet(wb, ws, "Laporan Absensi");
+        XLSX.writeFile(wb, `Log_Absen_Mandiri_${currentUser.nip}.xlsx`);
+        showNotification("Laporan Excel berhasil diunduh!", "success");
+    }
+
+    // EXPORT ALL PEGAlWAI LOGS TO EXCEL (SheetJS)
+    function exportAllToExcel() {
+        const dataPrepared = logs.map(log => {
+            const emp = employees.find(e => e.nip === log.nip) || { name: 'Pegawai Tidak Terdaftar' };
+            return {
+                "NIP": log.nip,
+                "Nama Pegawai": emp.name,
+                "Tanggal": formatDateIndo(log.date),
+                "Absen Masuk": log.checkIn || '-',
+                "Mulai Istirahat": log.breakStart || '-',
+                "Selesai Istirahat": log.breakEnd || '-',
+                "Absen Pulang": log.checkOut || '-',
+                "Jarak Kantor": log.distance || '-',
+                "Validitas": log.status
+            };
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(dataPrepared);
+        XLSX.utils.book_append_sheet(wb, ws, "Seluruh Absensi Pegawai");
+        XLSX.writeFile(wb, `Laporan_Konsolidasi_Absen_Mandiri.xlsx`);
+        showNotification("Laporan Konsolidasi Excel berhasil diunduh!", "success");
+    }
+
+    // EXPORT PERSONAL ATTENDANCE LOGS TO PDF (jsPDF)
+    function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Mandiri Brand Header Line
+        doc.setFillColor(0, 61, 121); // Mandiri Blue
+        doc.rect(0, 0, 210, 35, 'F');
+        
+        doc.setFont("Helvetica", "bold");
+        doc.setTextColor(249, 196, 0); // Mandiri Yellow Accent
+        doc.setFontSize(22);
+        doc.text("mandırı", 15, 20);
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(11);
+        doc.text("LAPORAN PRESENSI ELEKTRONIK INDIVIDUAL", 15, 28);
+
+        // Employee Info Metadata Section
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.text(`NAMA PEGAWAI :  ${currentUser.name}`, 15, 48);
+        doc.text(`NIP PEGAWAI       :  ${currentUser.nip}`, 15, 54);
+        doc.text(`JABATAN               :  ${currentUser.position}`, 15, 60);
+        doc.text(`KANTOR CABANG :  ${currentUser.branch}`, 15, 66);
+
+        // Render Table using jsPDF AutoTable
+        const myLogs = logs.filter(l => l.nip === currentUser.nip);
+        const rows = myLogs.map(log => [
+            formatDateIndo(log.date),
+            log.checkIn || '-',
+            log.breakStart || '-',
+            log.breakEnd || '-',
+            log.checkOut || '-',
+            log.distance || '-',
+            log.status
+        ]);
+
+        doc.autoTable({
+            startY: 74,
+            head: [['Tanggal', 'Masuk', 'Istirahat', 'Kembali', 'Pulang', 'Jarak', 'Validitas']],
+            body: rows,
+            headStyles: { fillIn: true, fillColor: [0, 61, 121] },
+            theme: 'grid',
+            styles: { fontSize: 8, font: 'Helvetica' }
+        });
+
+        doc.save(`Laporan_Absen_Mandiri_${currentUser.nip}.pdf`);
+        showNotification("Dokumen Laporan PDF Berhasil disimpan!", "success");
+    }
+
+    // EXPORT ALL PEGAlWAI LOGS TO PDF (jsPDF)
+    function exportAllToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFillColor(0, 61, 121); 
+        doc.rect(0, 0, 210, 35, 'F');
+        
+        doc.setFont("Helvetica", "bold");
+        doc.setTextColor(249, 196, 0); 
+        doc.setFontSize(22);
+        doc.text("mandırı", 15, 20);
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(11);
+        doc.text("LAPORAN ABSENSI KONSOLIDASI SELURUH PEGAWAI", 15, 28);
+
+        const rows = logs.map(log => {
+            const emp = employees.find(e => e.nip === log.nip) || { name: 'Pegawai' };
+            return [
+                log.nip,
+                emp.name,
+                formatDateIndo(log.date),
+                log.checkIn || '-',
+                log.breakStart || '-',
+                log.breakEnd || '-',
+                log.checkOut || '-',
+                log.distance || '-',
+                log.status
+            ];
+        });
+
+        doc.autoTable({
+            startY: 45,
+            head: [['NIP', 'Pegawai', 'Tanggal', 'Masuk', 'Istirahat', 'Kembali', 'Pulang', 'Jarak', 'Validitas']],
+            body: rows,
+            headStyles: { fillColor: [0, 61, 121] },
+            theme: 'striped',
+            styles: { fontSize: 7 }
+        });
+
+        doc.save("Laporan_Konsolidasi_Absen_Mandiri.pdf");
+        showNotification("Dokumen Laporan PDF Berhasil disimpan!", "success");
+    }
+</script>
+
+</body>
+</html>
